@@ -188,7 +188,7 @@ def normalize_company(name):
     for long, short in (('spolka z ograniczona odpowiedzialnoscia', 'sp z o o'), ('spolka akcyjna', 's a'),
                         ('spolka komandytowa', 'sp k'), ('spolka jawna', 'sp j')):
         s = s.replace(long, short)
-    return s
+    return s.replace(' ', '')   # 'Sp.z o.o.' == 'Sp. z o.o.'
 
 
 def substance_key(text):
