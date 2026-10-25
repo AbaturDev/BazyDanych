@@ -57,9 +57,9 @@ POCZATEK_HISTORII = date(2020, 1, 1)
 KATEGORIE_APTECZNE = {'OTC', 'Rp', 'Rpz', 'Rpw'}
 OPIS_KATEGORII = {
     'OTC': 'lek wydawany bez recepty',
-    'Rp': 'lek wydawany na recepte',
-    'Rpz': 'lek wydawany na recepte do zastrzezonego stosowania',
-    'Rpw': 'lek zawierajacy substancje psychotropowe lub odurzajace, wydawany na recepte',
+    'Rp': 'lek wydawany na receptę',
+    'Rpz': 'lek wydawany na receptę do zastrzeżonego stosowania',
+    'Rpw': 'lek zawierający substancje psychotropowe lub odurzające, wydawany na receptę',
 }
 
 # Sklad asortymentu
@@ -92,50 +92,51 @@ KIERUNKOWE = {
 
 # Opisy grup ATC (od najbardziej szczegolowych) - trafiaja do OpisLeku
 OPIS_ATC = [
-    ('N02C', 'lek przeciwmigrenowy, stosowany w leczeniu napadow migreny i bolu glowy'),
-    ('N02BE', 'lek przeciwbolowy i przeciwgoraczkowy (anilidy, np. paracetamol), stosowany przy bolu glowy, '
-              'migrenie, bolu zebow, bolach miesniowych i goraczce'),
-    ('N02BB', 'lek przeciwbolowy i przeciwgoraczkowy (pirazolony, np. metamizol), stosowany przy silnym bolu, '
-              'bolu glowy i goraczce'),
-    ('N02BA', 'lek przeciwbolowy (kwas acetylosalicylowy i pochodne), stosowany przy bolu glowy, migrenie i goraczce'),
-    ('N02B', 'lek przeciwbolowy i przeciwgoraczkowy, stosowany przy bolu glowy i migrenie'),
-    ('N02A', 'opioidowy lek przeciwbolowy, stosowany w silnym bolu'),
-    ('M01AE', 'niesteroidowy lek przeciwzapalny (pochodne kwasu propionowego, np. ibuprofen, naproksen, ketoprofen), '
-              'stosowany przy bolu glowy, migrenie, bolach miesniowych, bolu zebow i goraczce'),
-    ('M01A', 'niesteroidowy lek przeciwzapalny i przeciwreumatyczny, stosowany przy bolu i stanach zapalnych'),
-    ('R05', 'lek stosowany w kaszlu i przeziebieniu'),
+    ('N02C', 'lek przeciwmigrenowy, stosowany w leczeniu napadów migreny i bólu głowy'),
+    ('N02BE', 'lek przeciwbólowy i przeciwgorączkowy (anilidy, np. paracetamol), stosowany przy bólu głowy, '
+              'migrenie, bólu zębów, bólach mięśniowych i gorączce'),
+    ('N02BB', 'lek przeciwbólowy i przeciwgorączkowy (pirazolony, np. metamizol), stosowany przy silnym bólu, '
+              'bólu głowy i gorączce'),
+    ('N02BA', 'lek przeciwbólowy (kwas acetylosalicylowy i pochodne), stosowany przy bólu głowy, migrenie '
+              'i gorączce'),
+    ('N02B', 'lek przeciwbólowy i przeciwgorączkowy, stosowany przy bólu głowy i migrenie'),
+    ('N02A', 'opioidowy lek przeciwbólowy, stosowany w silnym bólu'),
+    ('M01AE', 'niesteroidowy lek przeciwzapalny (pochodne kwasu propionowego, np. ibuprofen, naproksen, '
+              'ketoprofen), stosowany przy bólu głowy, migrenie, bólach mięśniowych, bólu zębów i gorączce'),
+    ('M01A', 'niesteroidowy lek przeciwzapalny i przeciwreumatyczny, stosowany przy bólu i stanach zapalnych'),
+    ('R05', 'lek stosowany w kaszlu i przeziębieniu'),
     ('R06', 'lek przeciwhistaminowy, stosowany w alergii'),
-    ('R01', 'lek do stosowania donosowego, stosowany przy niezytach nosa'),
-    ('R03', 'lek stosowany w chorobach obturacyjnych drog oddechowych (astma, POChP)'),
-    ('A02', 'lek stosowany w zaburzeniach zwiazanych z nadkwasota i chorobie wrzodowej'),
-    ('A07', 'lek przeciwbiegunkowy i przeciwzapalny dzialajacy w jelitach'),
+    ('R01', 'lek do stosowania donosowego, stosowany przy nieżytach nosa'),
+    ('R03', 'lek stosowany w chorobach obturacyjnych dróg oddechowych (astma, POChP)'),
+    ('A02', 'lek stosowany w zaburzeniach związanych z nadkwaśnością i chorobie wrzodowej'),
+    ('A07', 'lek przeciwbiegunkowy i przeciwzapalny działający w jelitach'),
     ('A10', 'lek stosowany w cukrzycy'),
     ('A11', 'preparat witaminowy'),
     ('A12', 'preparat mineralny'),
     ('B01', 'lek przeciwzakrzepowy'),
-    ('C07', 'lek beta-adrenolityczny, stosowany w nadcisnieniu i chorobach serca'),
-    ('C08', 'antagonista wapnia, stosowany w nadcisnieniu'),
-    ('C09', 'lek dzialajacy na uklad renina-angiotensyna, stosowany w nadcisnieniu'),
-    ('C10', 'lek zmniejszajacy stezenie lipidow (np. statyny)'),
+    ('C07', 'lek beta-adrenolityczny, stosowany w nadciśnieniu i chorobach serca'),
+    ('C08', 'antagonista wapnia, stosowany w nadciśnieniu'),
+    ('C09', 'lek działający na układ renina-angiotensyna, stosowany w nadciśnieniu'),
+    ('C10', 'lek zmniejszający stężenie lipidów (np. statyny)'),
     ('D', 'lek dermatologiczny'),
-    ('G03', 'hormon plciowy lub modulator ukladu plciowego'),
-    ('H', 'hormonalny lek do stosowania ogolnego'),
-    ('J01', 'antybiotyk do stosowania ogolnego'),
-    ('J', 'lek przeciwinfekcyjny do stosowania ogolnego'),
-    ('L', 'lek przeciwnowotworowy lub immunomodulujacy'),
-    ('N05', 'lek psycholeptyczny (przeciwpsychotyczny, przeciwlekowy lub nasenny)'),
+    ('G03', 'hormon płciowy lub modulator układu płciowego'),
+    ('H', 'hormonalny lek do stosowania ogólnego'),
+    ('J01', 'antybiotyk do stosowania ogólnego'),
+    ('J', 'lek przeciwinfekcyjny do stosowania ogólnego'),
+    ('L', 'lek przeciwnowotworowy lub immunomodulujący'),
+    ('N05', 'lek psycholeptyczny (przeciwpsychotyczny, przeciwlękowy lub nasenny)'),
     ('N06', 'lek psychoanaleptyczny (np. przeciwdepresyjny)'),
     ('N03', 'lek przeciwpadaczkowy'),
-    ('N', 'lek dzialajacy na uklad nerwowy'),
-    ('A', 'lek dzialajacy na przewod pokarmowy i metabolizm'),
-    ('B', 'lek dzialajacy na krew i uklad krwiotworczy'),
-    ('C', 'lek dzialajacy na uklad sercowo-naczyniowy'),
-    ('G', 'lek dzialajacy na uklad moczowo-plciowy'),
-    ('M', 'lek dzialajacy na uklad miesniowo-szkieletowy'),
-    ('P', 'lek przeciwpasozytniczy'),
-    ('R', 'lek dzialajacy na uklad oddechowy'),
-    ('S', 'lek dzialajacy na narzady zmyslow (oczy, uszy)'),
-    ('V', 'preparat rozny'),
+    ('N', 'lek działający na układ nerwowy'),
+    ('A', 'lek działający na przewód pokarmowy i metabolizm'),
+    ('B', 'lek działający na krew i układ krwiotwórczy'),
+    ('C', 'lek działający na układ sercowo-naczyniowy'),
+    ('G', 'lek działający na układ moczowo-płciowy'),
+    ('M', 'lek działający na układ mięśniowo-szkieletowy'),
+    ('P', 'lek przeciwpasożytniczy'),
+    ('R', 'lek działający na układ oddechowy'),
+    ('S', 'lek działający na narządy zmysłów (oczy, uszy)'),
+    ('V', 'preparat różny'),
 ]
 
 
@@ -420,9 +421,9 @@ def opis_leku(pack):
     parts = [head] + [v for v in (r['Moc'].strip(), first_line(r['Postać farmaceutyczna'])) if v]
     text = ', '.join(parts) + '.'
     if pack['opak']:
-        text += f" Opakowanie: {pack['opak']}."
+        text += f" Opakowanie: {pack['opak'].rstrip('.')}."
     text += f" {opis_atc(pack['atc']).capitalize()}" + (f" (ATC {pack['atc']})." if pack['atc'] else '.')
-    text += f" Kategoria dostepnosci: {pack['kat']} - {OPIS_KATEGORII[pack['kat']]}."
+    text += f" Kategoria dostępności: {pack['kat']} – {OPIS_KATEGORII[pack['kat']]}."
     subst = ' '.join(r['Substancja czynna'].split())
     if subst:
         text += f' Substancja czynna: {subst}.'
