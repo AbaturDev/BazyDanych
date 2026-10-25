@@ -19,8 +19,12 @@ services:
       - apteka-data:/opt/oracle/oradata
       # Skrypty *.sql / *.sh uruchamiane alfabetycznie TYLKO przy pierwszej inicjalizacji bazy.
       - ./db/init:/container-entrypoint-initdb.d:ro
+      # Skrypty startowe uruchamiane przy każdym starcie Oracle, także na istniejącym wolumenie.
+      - ./db/startup:/container-entrypoint-startdb.d:ro
       # Katalog roboczy na skrypty/CSV, dostepny w kontenerze jako /scripts
       - ./db/scripts:/scripts
+      # CSV źródłowe dla automatycznego, wznawialnego loadera SQL*Loader.
+      - ./data/przygotowane:/data/przygotowane:ro
     healthcheck:
       test: ["CMD", "healthcheck.sh"]
       interval: 10s
