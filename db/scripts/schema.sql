@@ -6,7 +6,7 @@ CREATE TABLE Producent (
     Nazwa                     NVARCHAR2(100) NOT NULL,
     NIP                       CHAR(10),
     Kraj                      NVARCHAR2(50),
-    DataRozpoczeciaWspolpracy DATE,
+    DataZalozenia             DATE,
     CONSTRAINT pk_producent      PRIMARY KEY (ID),
     CONSTRAINT uq_producent_nip  UNIQUE (NIP),
     CONSTRAINT ck_producent_nip  CHECK (REGEXP_LIKE(NIP, '^[0-9]{10}$'))

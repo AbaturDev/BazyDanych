@@ -55,7 +55,8 @@ PROFIL_ANTYBIOTYK = (1.20, 1.15, 1.10, 1.00, 0.95, 0.95, 0.90, 0.90, 0.95, 1.05,
 PROFIL_CALOROCZNY = (1.0,) * 12
 # Ruch w aptece ogolem (liczba paragonow) - wiecej w sezonie infekcji
 RUCH_MIESIECZNY = (1.10, 1.06, 1.02, 0.97, 0.95, 0.92, 0.90, 0.92, 0.98, 1.03, 1.07, 1.12)
-WZROST_ROCZNY = 0.07          # wzrost liczby transakcji rok do roku
+WZROST_ROCZNY = 0.07          # organiczny wzrost liczby transakcji rok do roku
+WPLYW_ASORTYMENTU = 0.8       # jak mocno liczba transakcji zalezy od wielkosci asortymentu
 INFLACJA_ROCZNA = 0.045       # wzrost cen lekow rok do roku
 
 # Popularnosc lekow: log-normalna; mnozniki wg kategorii dostepnosci i grupy
@@ -151,7 +152,22 @@ class Asortyment:
             wynik.append(lek)
             if len(wynik) == k:
                 break
+        if len(wynik) < k:
+            # np. pierwsze dni po uruchomieniu systemu: dostepna jest tylko czesc asortymentu miesiaca
+            reszta = [l for l in dostepne if l['od'] <= dzien and (l['do'] is None or dzien <= l['do'])
+                      and not (bez_powtorzen and l['id'] in uzyte)]
+            while len(wynik) < k and reszta:
+                lek = rng.choice(reszta)
+                if bez_powtorzen:
+                    reszta.remove(lek)
+                    uzyte.add(lek['id'])
+                wynik.append(lek)
         return wynik
+
+    def udzial_popularnosci(self, i_mies, suma_wszystkich):
+        """Jaka czesc popytu calego katalogu jest dostepna w danym miesiacu (0..1)."""
+        dostepne, _ = self.koszyki[i_mies]
+        return sum(l['pop'] for l in dostepne) / suma_wszystkich
 
 
 def status_zamowienia(rng, wiek):
@@ -218,8 +234,13 @@ def main():
         lek['podwyzka'] = rng.uniform(*PODWYZKA)
 
     miesiace = miesiace_historii()
-    wagi_miesiecy = list(itertools.accumulate(m[2] for m in miesiace))
     asort_sprzedaz = Asortyment(leki, miesiace, sezon=True)
+    # Ruch w aptece rosnie organicznie (WZROST_ROCZNY) oraz razem z poszerzaniem asortymentu:
+    # im wiecej (popularnych) lekow w ofercie, tym wiecej klientow i zamowien.
+    suma_pop = sum(l['pop'] for l in leki)
+    wagi = [m[2] * asort_sprzedaz.udzial_popularnosci(i, suma_pop) ** WPLYW_ASORTYMENTU
+            for i, m in enumerate(miesiace)]
+    wagi_miesiecy = list(itertools.accumulate(wagi))
 
     def losuj_dzien():
         i = rng.choices(range(len(miesiace)), cum_weights=wagi_miesiecy)[0]

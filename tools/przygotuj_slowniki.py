@@ -51,7 +51,19 @@ SEED = 42
 
 # Data odniesienia calej symulacji (etap 2: "ostatnie 12 miesiecy", "3 lata", "5 lat")
 DATA_TESTOWA = date(2026, 10, 25)
-POCZATEK_HISTORII = date(2020, 1, 1)
+POCZATEK_HISTORII = date(2020, 1, 1)   # uruchomienie systemu apteki
+
+# Rozklad dat wprowadzenia lekow do systemu apteki: (udzial, od, do)
+OKRESY_WPROWADZENIA = [
+    (0.500, date(2020, 1, 1), date(2020, 1, 7)),     # asortyment w dniu uruchomienia systemu
+    (0.200, date(2020, 1, 8), date(2020, 12, 31)),
+    (0.100, date(2021, 1, 1), date(2021, 12, 31)),
+    (0.070, date(2022, 1, 1), date(2022, 12, 31)),
+    (0.050, date(2023, 1, 1), date(2023, 12, 31)),
+    (0.035, date(2024, 1, 1), date(2024, 12, 31)),
+    (0.025, date(2025, 1, 1), date(2025, 12, 31)),
+    (0.020, date(2026, 1, 1), date(2026, 9, 30)),
+]
 
 # Apteka ogolnodostepna: bez lekow szpitalnych (Lz) i skasowanych opakowan
 KATEGORIE_APTECZNE = {'OTC', 'Rp', 'Rpz', 'Rpw'}
@@ -493,6 +505,7 @@ def build_dostawcy(firms, rng):
 # ===================================================================== main
 def main():
     rng = random.Random(SEED)
+    rng_wprow = random.Random(SEED + 1)   # daty wprowadzenia lekow i zalozenia producentow
 
     catalog = load_catalog()
     obw = load_obwieszczenie()
@@ -523,25 +536,32 @@ def main():
             detal, zrodlo = cennik.szacuj_cene(p)
             hurt = round(detal / cennik.detal_do_hurtu, 2)
 
-        # 85% lekow w systemie przed poczatkiem historii sprzedazy, 15% wprowadzane pozniej
+        # system apteki uruchomiono 1.01.2020: polowa asortymentu w pierwszym tygodniu,
+        # potem apteka stopniowo poszerza oferte (coraz mniej nowosci z roku na rok)
+        okres = rng_wprow.choices(OKRESY_WPROWADZENIA, weights=[o[0] for o in OKRESY_WPROWADZENIA])[0]
+        wprow = random_date(rng_wprow, okres[1], okres[2])
+        # zachowanie sekwencji glownego generatora -> dostawcy pozostaja bez zmian
         if rng.random() < 0.85:
-            wprow = random_date(rng, date(2015, 1, 1), POCZATEK_HISTORII - timedelta(days=1))
+            rng.randint(0, (date(2019, 12, 31) - date(2015, 1, 1)).days)
         else:
-            wprow = random_date(rng, POCZATEK_HISTORII, date(2026, 4, 30))
+            rng.randint(0, (date(2026, 4, 30) - POCZATEK_HISTORII).days)
         prod['min_wprow'] = min(prod['min_wprow'] or wprow, wprow)
 
         lid = len(lek_rows) + 1
         lek_rows.append([lid, nazwa_leku(p), p['ean'], f'{detal:.2f}', wprow.isoformat(), prod['id'], opis_leku(p)])
         ceny_rows.append([lid, p['ean'], p['kat'], f'{hurt:.2f}', f'{detal:.2f}', zrodlo])
 
+    # data zalozenia firmy: lata 1950-2008, zawsze przed wprowadzeniem jej pierwszego leku do apteki
     prod_rows = []
     for prod in sorted(producenci.values(), key=lambda x: x['id']):
-        wsp = max(date(2010, 1, 1), prod['min_wprow'] - timedelta(days=rng.randint(30, 3 * 365)))
-        prod_rows.append([prod['id'], prod['nazwa'], prod['nip'] or '', prod['kraj'] or '', wsp.isoformat()])
+        rng.randint(30, 3 * 365)   # zachowanie sekwencji glownego generatora
+        najpozniej = min(date(2008, 12, 31), prod['min_wprow'] - timedelta(days=3 * 365))
+        zalozenie = random_date(rng_wprow, date(1950, 1, 1), najpozniej)
+        prod_rows.append([prod['id'], prod['nazwa'], prod['nip'] or '', prod['kraj'] or '', zalozenie.isoformat()])
 
     dost_rows, dost_meta = build_dostawcy(firms, rng)
 
-    write_csv('producent.csv', ['ID', 'Nazwa', 'NIP', 'Kraj', 'DataRozpoczeciaWspolpracy'], prod_rows)
+    write_csv('producent.csv', ['ID', 'Nazwa', 'NIP', 'Kraj', 'DataZalozenia'], prod_rows)
     write_csv('lek.csv', ['ID', 'Nazwa', 'KodEAN', 'CenaDetaliczna', 'DataWprowadzenia', 'ProducentID',
                           'OpisLeku'], lek_rows)
     write_csv('dostawca.csv', ['ID', 'Nazwa', 'NIP', 'Telefon', 'DataPodpisaniaUmowy'], dost_rows)

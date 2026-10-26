@@ -25,7 +25,7 @@ DST = ROOT / 'db' / 'scripts' / 'dane.sql'
 
 # Kolejnosc ladowania (rodzic przed dzieckiem) i kolumny liczbowe / datowe kazdej tabeli
 TABELE = {
-    'Producent':         {'num': {'ID'}, 'date': {'DataRozpoczeciaWspolpracy'}},
+    'Producent':         {'num': {'ID'}, 'date': {'DataZalozenia'}},
     'Lek':               {'num': {'ID', 'CenaDetaliczna', 'ProducentID'}, 'date': {'DataWprowadzenia'}},
     'Dostawca':          {'num': {'ID'}, 'date': {'DataPodpisaniaUmowy'}},
     'Zamowienie':        {'num': {'ID', 'DostawcaID', 'WartoscZamowienia'},
