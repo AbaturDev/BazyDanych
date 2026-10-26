@@ -5,13 +5,28 @@ Uruchom po tools/przygotuj_slowniki.py:
 
 Wynik trafia do data/przygotowane/ i moze zostac zaladowany przez
 tools/csv_do_sql.py. Generator jest deterministyczny (SEED).
+
+Zalozenia symulacji (pod transakcje T1-T6 z etapu 2):
+  * popularnosc lekow ma rozklad dlugoogonowy (log-normalny): ok. 20% lekow daje
+    ok. 80% sprzedazy; leki bez recepty i przeciwbolowe sa czesciej kupowane,
+  * sprzedaz rosnie o ok. 7% rocznie i ma sezonowosc (ogolna + wg grupy ATC),
+  * ceny zakupu i sprzedazy rosna z inflacja (ok. 4,5% rocznie); dla czesci lekow
+    hurtownie podniosly ceny zakupu o 12-25% ok. pol roku przed data testowa (T5),
+  * zamowienia z ostatnich tygodni sa jeszcze aktywne (NOWE, ZATWIERDZONE,
+    W_REALIZACJI), ok. 3% zamowien jest anulowanych (T4, T6),
+  * czesc lekow zostala wycofana ze sprzedazy w latach 2021-2023: maja stara historie
+    sprzedazy i zamowien, ale nic po dacie wycofania (T6).
 """
 import argparse
+import bisect
 import calendar
 import csv
+import itertools
+import math
 import random
 import re
 import sys
+from collections import Counter
 from datetime import date, datetime, time, timedelta
 from pathlib import Path
 
@@ -38,6 +53,28 @@ PROFIL_ALERGIA = (0.70, 0.80, 1.05, 1.40, 1.70, 1.75, 1.55, 1.25, 1.00, 0.80, 0.
 PROFIL_PRZEZIEBIENIE = (1.55, 1.45, 1.20, 0.85, 0.70, 0.60, 0.55, 0.60, 0.80, 1.15, 1.55, 1.75)
 PROFIL_ANTYBIOTYK = (1.20, 1.15, 1.10, 1.00, 0.95, 0.95, 0.90, 0.90, 0.95, 1.05, 1.15, 1.20)
 PROFIL_CALOROCZNY = (1.0,) * 12
+# Ruch w aptece ogolem (liczba paragonow) - wiecej w sezonie infekcji
+RUCH_MIESIECZNY = (1.10, 1.06, 1.02, 0.97, 0.95, 0.92, 0.90, 0.92, 0.98, 1.03, 1.07, 1.12)
+WZROST_ROCZNY = 0.07          # wzrost liczby transakcji rok do roku
+INFLACJA_ROCZNA = 0.045       # wzrost cen lekow rok do roku
+
+# Popularnosc lekow: log-normalna; mnozniki wg kategorii dostepnosci i grupy
+POPULARNOSC_SIGMA = 1.6
+MNOZNIK_KATEGORII = {'OTC': 2.0, 'Rp': 1.0, 'Rpz': 0.3, 'Rpw': 0.4}
+ATC_BOL_GLOWY = ('N02B', 'N02C', 'M01AE')
+MNOZNIK_BOL_GLOWY = 2.5
+
+# Scenariusze pod T5 i T6
+UDZIAL_PODWYZEK = 0.08        # leki z podwyzka ceny zakupu (T5)
+PODWYZKA = (0.12, 0.25)
+PODWYZKA_DNI_PRZED = (183, 200)   # tuz przed oknem "ostatnich 6 miesiecy"
+UDZIAL_WYCOFANYCH = 0.04      # leki wycofane ze sprzedazy (T6)
+WYCOFANIE_OD, WYCOFANIE_DO = date(2021, 3, 1), date(2023, 9, 30)
+WAHANIE_CENY_ZAKUPU = 0.05    # +-5% miedzy dostawami
+MAKS_ZAKUP_DO_DETALU = 0.97   # cena zakupu zawsze ponizej ceny sprzedazy
+
+# Statusy zamowien wg wieku zamowienia (dni od zlozenia do daty testowej)
+UDZIAL_ANULOWANYCH = 0.03
 
 
 def read_csv(name):
@@ -60,12 +97,6 @@ def money(value):
     return f'{value / 100:.2f}'
 
 
-def random_day(rng, start, end):
-    if start > end:
-        start = end
-    return start + timedelta(days=rng.randint(0, (end - start).days))
-
-
 def profil_sezonowy(atc):
     """Zwraca miesieczny profil dla kodu ATC, bez zgadywania po nazwie handlowej."""
     if atc.startswith('R06') or atc.startswith(('R01AC', 'R01AD')):
@@ -77,28 +108,75 @@ def profil_sezonowy(atc):
     return PROFIL_CALOROCZNY
 
 
-def losuj_date_sprzedazy(rng, profil, od):
-    """Losuje date z uwzglednieniem dostepnosci produktu i miesiecznego popytu."""
-    od = max(od, POCZATEK_HISTORII)
-    miesiace, wagi = [], []
-    for rok in range(od.year, DATA_TESTOWA.year + 1):
-        for miesiac in range(1, 13):
-            if (rok, miesiac) < (od.year, od.month) or (rok, miesiac) > (DATA_TESTOWA.year, DATA_TESTOWA.month):
+def indeks_cen(dzien):
+    """Poziom cen wzgledem daty testowej (1.0 = ceny z tabeli Lek); stały w obrebie miesiaca."""
+    lata = (date(dzien.year, dzien.month, 15) - DATA_TESTOWA).days / 365.25
+    return (1 + INFLACJA_ROCZNA) ** lata
+
+
+def miesiace_historii():
+    """Miesiace symulacji: (pierwszy dzien, ostatni dzien, waga ruchu)."""
+    out = []
+    for rok, mies in itertools.product(range(POCZATEK_HISTORII.year, DATA_TESTOWA.year + 1), range(1, 13)):
+        start = date(rok, mies, 1)
+        if start > DATA_TESTOWA:
+            break
+        koniec = min(date(rok, mies, calendar.monthrange(rok, mies)[1]), DATA_TESTOWA)
+        lata = (start - POCZATEK_HISTORII).days / 365.25
+        waga = ((koniec - start).days + 1) * RUCH_MIESIECZNY[mies - 1] * (1 + WZROST_ROCZNY) ** lata
+        out.append((start, koniec, waga))
+    return out
+
+
+class Asortyment:
+    """Losowanie lekow dostepnych w danym miesiacu, z wagami popularnosci i sezonu."""
+
+    def __init__(self, leki, miesiace, sezon):
+        self.koszyki = []
+        for start, koniec, _ in miesiace:
+            dostepne = [l for l in leki if l['od'] <= koniec and (l['do'] is None or l['do'] >= start)]
+            wagi = [l['pop'] * (l['profil'][start.month - 1] if sezon else 1.0) for l in dostepne]
+            self.koszyki.append((dostepne, list(itertools.accumulate(wagi))))
+
+    def losuj(self, rng, i_mies, dzien, k=1, bez_powtorzen=False):
+        dostepne, cum = self.koszyki[i_mies]
+        wynik, uzyte = [], set()
+        for _ in range(k * 50):
+            lek = rng.choices(dostepne, cum_weights=cum)[0]
+            if dzien < lek['od'] or (lek['do'] is not None and dzien > lek['do']):
                 continue
-            pierwszy = date(rok, miesiac, 1)
-            poczatek = max(od, pierwszy)
-            koniec_miesiaca = date(rok, miesiac, calendar.monthrange(rok, miesiac)[1])
-            koniec = min(koniec_miesiaca, DATA_TESTOWA)
-            dni = (koniec - poczatek).days + 1
-            if dni > 0:
-                miesiace.append((poczatek, dni))
-                wagi.append(dni * profil[miesiac - 1])
-    poczatek, dni = rng.choices(miesiace, weights=wagi, k=1)[0]
-    return poczatek + timedelta(days=rng.randrange(dni))
+            if bez_powtorzen and lek['id'] in uzyte:
+                continue
+            uzyte.add(lek['id'])
+            wynik.append(lek)
+            if len(wynik) == k:
+                break
+        return wynik
+
+
+def status_zamowienia(rng, wiek):
+    if wiek > 3 and rng.random() < UDZIAL_ANULOWANYCH:
+        return 'ANULOWANE'
+    if wiek <= 3:
+        return 'NOWE'
+    if wiek <= 10:
+        return rng.choice(('ZATWIERDZONE', 'W_REALIZACJI'))
+    if wiek <= 21:
+        return 'W_REALIZACJI' if rng.random() < 0.3 else 'ZREALIZOWANE'
+    return 'ZREALIZOWANE'
+
+
+def cena_zakupu(rng, lek, dzien):
+    cena = lek['hurt'] * indeks_cen(dzien)
+    if lek['podwyzka_od'] and dzien >= lek['podwyzka_od']:
+        cena *= 1 + lek['podwyzka']
+    cena *= rng.uniform(1 - WAHANIE_CENY_ZAKUPU, 1 + WAHANIE_CENY_ZAKUPU)
+    cena = min(cena, MAKS_ZAKUP_DO_DETALU * lek['detal'] * indeks_cen(dzien))
+    return max(1, round(cena))
 
 
 def main():
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('--pozycji-sprzedazy', type=int, default=1_000_000,
                         help='liczba pozycji sprzedaży (domyślnie 1000000; zakres docelowy 300000–1000000)')
     parser.add_argument('--zamowien', type=int, default=20_000,
@@ -112,89 +190,118 @@ def main():
         parser.error('musi być co najmniej jedna pozycja na każde zamówienie')
 
     rng = random.Random(SEED)
-    leki_rows = read_csv('lek.csv')
-    cena_rows = read_csv('lek_ceny.csv')
-    dostawcy_rows = read_csv('dostawca.csv')
-    meta_rows = read_csv('dostawca_meta.csv')
-    ceny = {int(r['LekID']): cents(r['CenaHurtowaBrutto']) for r in cena_rows}
+    ceny = {int(r['LekID']): (cents(r['CenaHurtowaBrutto']), r['Kategoria']) for r in read_csv('lek_ceny.csv')}
+
+    # ---------------------------------------------------------------- leki i scenariusze
     leki = []
-    for r in leki_rows:
+    for r in read_csv('lek.csv'):
         lid = int(r['ID'])
         m_atc = re.search(r'ATC\s+([A-Z0-9]+)', r['OpisLeku'])
         atc = m_atc.group(1) if m_atc else ''
-        leki.append({'id': lid, 'od': date.fromisoformat(r['DataWprowadzenia']),
-                     'detal': cents(r['CenaDetaliczna']), 'hurt': ceny[lid], 'atc': atc,
-                     'profil': profil_sezonowy(atc)})
+        hurt, kat = ceny[lid]
+        pop = math.exp(rng.gauss(0, POPULARNOSC_SIGMA)) * MNOZNIK_KATEGORII.get(kat, 1.0)
+        if atc.startswith(ATC_BOL_GLOWY):
+            pop *= MNOZNIK_BOL_GLOWY
+        leki.append({'id': lid, 'od': max(date.fromisoformat(r['DataWprowadzenia']), POCZATEK_HISTORII),
+                     'do': None, 'detal': cents(r['CenaDetaliczna']), 'hurt': hurt, 'atc': atc,
+                     'profil': profil_sezonowy(atc), 'pop': pop, 'podwyzka_od': None, 'podwyzka': 0.0})
     leki = [l for l in leki if l['od'] <= DATA_TESTOWA]
-    if not leki:
-        raise ValueError('Brak leków dostępnych w okresie symulacji')
 
-    # Zamówienia: data po podpisaniu umowy; plan i dostawa w logicznej kolejności.
-    meta = {r['DostawcaID']: r for r in meta_rows}
-    dostawcy = [r for r in dostawcy_rows if r['ID'] in meta]
-    if not dostawcy:
-        raise ValueError('Brak dostawców z metadanymi umów')
+    # T6: wycofane leki - tylko takie, ktore byly w sprzedazy przynajmniej rok przed wycofaniem
+    kandydaci = [l for l in leki if l['od'] <= WYCOFANIE_OD - timedelta(days=365)]
+    for lek in rng.sample(kandydaci, round(UDZIAL_WYCOFANYCH * len(leki))):
+        lek['do'] = WYCOFANIE_OD + timedelta(days=rng.randint(0, (WYCOFANIE_DO - WYCOFANIE_OD).days))
+    # T5: podwyzki cen zakupu (tylko leki nadal sprzedawane)
+    aktywne_leki = [l for l in leki if l['do'] is None]
+    for lek in rng.sample(aktywne_leki, round(UDZIAL_PODWYZEK * len(leki))):
+        lek['podwyzka_od'] = DATA_TESTOWA - timedelta(days=rng.randint(*PODWYZKA_DNI_PRZED))
+        lek['podwyzka'] = rng.uniform(*PODWYZKA)
+
+    miesiace = miesiace_historii()
+    wagi_miesiecy = list(itertools.accumulate(m[2] for m in miesiace))
+    asort_sprzedaz = Asortyment(leki, miesiace, sezon=True)
+
+    def losuj_dzien():
+        i = rng.choices(range(len(miesiace)), cum_weights=wagi_miesiecy)[0]
+        start, koniec, _ = miesiace[i]
+        return i, start + timedelta(days=rng.randint(0, (koniec - start).days))
+
+    # ---------------------------------------------------------------- zamowienia
+    # Apteka zamawia glownie u kilku duzych hurtowni - popularnosc dostawcow tez jest nierowna.
+    dostawcy = sorted(read_csv('dostawca.csv'), key=lambda r: r['DataPodpisaniaUmowy'])
+    umowy = [date.fromisoformat(r['DataPodpisaniaUmowy']) for r in dostawcy]
+    cum_dost = list(itertools.accumulate(math.exp(rng.gauss(0, 1.0)) for _ in dostawcy))
+
     zamowienia, pozycje_zam = [], []
     pozycje_na_zamowienie = [1] * args.zamowien
     for _ in range(args.pozycji_zamowien - args.zamowien):
         pozycje_na_zamowienie[rng.randrange(args.zamowien)] += 1
 
-    for zam_id, liczba_pozycji in enumerate(pozycje_na_zamowienie, 1):
-        dostawca = rng.choice(dostawcy)
-        umowa = date.fromisoformat(dostawca['DataPodpisaniaUmowy'])
-        dostawy = [(rng.choice(leki),
-                    rng.choices((1, 2, 3, 5, 10, 20, 50), weights=(5, 10, 15, 25, 25, 15, 5))[0])
-                   for _ in range(liczba_pozycji)]
-        najwczesniejszy_zakup = max([umowa, POCZATEK_HISTORII] + [lek['od'] for lek, _ in dostawy])
-        data_zam = random_day(rng, najwczesniejszy_zakup, DATA_TESTOWA - timedelta(days=8))
-        plan = data_zam + timedelta(days=rng.randint(1, 5))
-        dostawy_z_cenami = []
-        for lek, ilosc in dostawy:
-            data_przyj = max(plan, lek['od']) + timedelta(days=rng.randint(0, 2))
-            cena = lek['hurt']
-            dostawy_z_cenami.append((lek, ilosc, cena, data_przyj))
-        wartosc = sum(ilosc * cena for _, ilosc, cena, _ in dostawy_z_cenami)
-        status = 'ZREALIZOWANE'
-        kod = f'Z{zam_id:09d}'
-        zamowienia.append([zam_id, dostawca['ID'], data_zam.isoformat(), plan.isoformat(), status,
-                           money(wartosc), kod])
-        for poz_id, (lek, ilosc, cena, data_przyj) in enumerate(dostawy_z_cenami, len(pozycje_zam) + 1):
-            pozycje_zam.append([poz_id, zam_id, lek['id'], ilosc, money(cena), data_przyj.isoformat(),
-                                f'ZP{poz_id:06d}'])
+    plan = []
+    for liczba in pozycje_na_zamowienie:
+        i_mies, dzien = losuj_dzien()
+        plan.append((dzien, i_mies, liczba))
+    plan.sort(key=lambda x: x[0])   # ID zamowien rosna z data
+
+    for zam_id, (data_zam, i_mies, liczba_pozycji) in enumerate(plan, 1):
+        k = bisect.bisect_right(umowy, data_zam)
+        dostawca = rng.choices(dostawcy[:k], cum_weights=cum_dost[:k])[0]
+        wiek = (DATA_TESTOWA - data_zam).days
+        status = status_zamowienia(rng, wiek)
+        planowana = data_zam + timedelta(days=rng.randint(1, 5))
+        linie = asort_sprzedaz.losuj(rng, i_mies, data_zam, k=liczba_pozycji, bez_powtorzen=True)
+        wartosc = 0
+        for lek in linie:
+            ilosc = rng.choices((1, 2, 3, 5, 10, 20, 50), weights=(5, 10, 15, 25, 25, 15, 5))[0]
+            cena = cena_zakupu(rng, lek, data_zam)
+            dostarczono = ''
+            if status == 'ZREALIZOWANE':
+                dostarczono = min(planowana + timedelta(days=rng.randint(0, 2)), DATA_TESTOWA).isoformat()
+            wartosc += ilosc * cena
+            poz_id = len(pozycje_zam) + 1
+            pozycje_zam.append([poz_id, zam_id, lek['id'], ilosc, money(cena), dostarczono, f'ZP{poz_id:06d}'])
+        zamowienia.append([zam_id, dostawca['ID'], data_zam.isoformat(), planowana.isoformat(), status,
+                           money(wartosc), f'Z{zam_id:09d}'])
 
     write_rows('zamowienie.csv', ['ID', 'DostawcaID', 'DataZamowienia', 'PlanowanaDostawa', 'Status',
                                   'WartoscZamowienia', 'KodZamowienia'], zamowienia)
     write_rows('pozycjazamowienia.csv', ['ID', 'ZamowienieID', 'LekID', 'Ilosc', 'CenaZakupu',
                                          'DataDostarczenia', 'KodPozycji'], pozycje_zam)
 
-    # Sprzedaż: dokładna liczba pozycji, średnio dwie pozycje na paragon.
+    # ---------------------------------------------------------------- sprzedaz
+    # Dokładna liczba pozycji, średnio dwie pozycje na paragon.
     paragon_count = max(1, round(args.pozycji_sprzedazy / 2.0))
     pozycje_na_paragon = [1] * paragon_count
     for _ in range(args.pozycji_sprzedazy - paragon_count):
         pozycje_na_paragon[rng.randrange(paragon_count)] += 1
+
+    paragony = []
+    for liczba in pozycje_na_paragon:
+        i_mies, dzien = losuj_dzien()
+        godzina = time(8 + rng.choices(range(12), weights=(4, 6, 7, 7, 7, 7, 8, 9, 10, 9, 7, 4))[0],
+                       rng.randrange(60))
+        paragony.append((datetime.combine(dzien, godzina), i_mies, liczba))
+    paragony.sort(key=lambda x: x[0])   # numery paragonow rosna z czasem
+
     sprzedaze, pozycje_sprz = [], []
     platnosci = ('GOTOWKA', 'KARTA', 'BLIK')
     kasy = ('K001', 'K002', 'K003', 'K004')
-    for sprz_id, liczba_pozycji in enumerate(pozycje_na_paragon, 1):
-        linie = []
-        for _ in range(liczba_pozycji):
-            lek = rng.choice(leki)
+    for sprz_id, (kiedy, i_mies, liczba_pozycji) in enumerate(paragony, 1):
+        dzien = kiedy.date()
+        # udzial platnosci gotowka spada z roku na rok na rzecz karty i BLIK
+        rok = dzien.year - POCZATEK_HISTORII.year
+        platnosc = rng.choices(platnosci, weights=(max(45 - 5 * rok, 15), 45, 10 + 5 * rok))[0]
+        wartosc = 0
+        for lek in asort_sprzedaz.losuj(rng, i_mies, dzien, k=liczba_pozycji):
             ilosc = rng.choices((1, 2, 3, 4, 5), weights=(70, 20, 6, 3, 1))[0]
             rabat = rng.choices((0, 5, 10, 15), weights=(80, 10, 8, 2))[0]
-            cena = lek['detal']
-            linie.append((lek, ilosc, cena, rabat))
-        # Pozycje paragonu mają wspólną datę i sezonowość odpowiadającą
-        # głównej grupie ATC na paragonie.
-        profil = tuple(sum(lek['profil'][i] for lek, _, _, _ in linie) / len(linie) for i in range(12))
-        data_sprz = losuj_date_sprzedazy(rng, profil, max(lek['od'] for lek, _, _, _ in linie))
-        wartosc = 0
-        for poz_id, (lek, ilosc, cena, rabat) in enumerate(linie, len(pozycje_sprz) + 1):
+            cena = max(1, round(lek['detal'] * indeks_cen(dzien)))
             wartosc += round(ilosc * cena * (100 - rabat) / 100)
+            poz_id = len(pozycje_sprz) + 1
             pozycje_sprz.append([poz_id, sprz_id, lek['id'], ilosc, money(cena), rabat,
-                                 data_sprz.isoformat(), f'S{poz_id:07d}'])
-        sprzedaze.append([sprz_id, datetime.combine(data_sprz, time(8 + rng.randrange(12),
-                                                                     rng.randrange(60))).strftime('%Y-%m-%d %H:%M:%S'),
-                          f'PAR{sprz_id:09d}', rng.choice(platnosci), money(wartosc), rng.choice(kasy)])
+                                 dzien.isoformat(), f'S{poz_id:07d}'])
+        sprzedaze.append([sprz_id, kiedy.strftime('%Y-%m-%d %H:%M:%S'), f'PAR{sprz_id:09d}', platnosc,
+                          money(wartosc), rng.choice(kasy)])
 
     write_rows('sprzedaz.csv', ['ID', 'DataSprzedazy', 'NumerParagonu', 'SposobPlatnosci',
                                 'WartoscCalkowita', 'KodKasy'], sprzedaze)
@@ -202,8 +309,11 @@ def main():
                                         'DataUjecia', 'KodPozycji'], pozycje_sprz)
 
     print(f'Zamowienie: {len(zamowienia):,}; PozycjaZamowienia: {len(pozycje_zam):,}')
+    print(f'  statusy: {dict(Counter(z[4] for z in zamowienia))}')
     print(f'Sprzedaz: {len(sprzedaze):,}; PozycjaSprzedazy: {len(pozycje_sprz):,}')
-    print(f'Ceny zakupu pochodzą z lek_ceny.csv; pliki zapisano w {OUT.relative_to(ROOT)}/')
+    print(f'Scenariusze: wycofane leki (T6) = {sum(l["do"] is not None for l in leki)}, '
+          f'podwyzki cen zakupu (T5) = {sum(l["podwyzka_od"] is not None for l in leki)}')
+    print(f'Pliki zapisano w {OUT.relative_to(ROOT)}/')
 
 
 if __name__ == '__main__':

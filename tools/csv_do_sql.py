@@ -72,8 +72,7 @@ def main():
     counts = {}
     with open(dst, 'w', encoding='utf-8') as out:
         out.write('-- Wygenerowane przez tools/csv_do_sql.py - nie edytowac recznie.\n')
-        if not args.only:
-            out.write('SET DEFINE OFF\nSET FEEDBACK OFF\nWHENEVER SQLERROR EXIT SQL.SQLCODE ROLLBACK\n\n')
+        out.write('SET DEFINE OFF\nSET FEEDBACK OFF\nWHENEVER SQLERROR EXIT SQL.SQLCODE ROLLBACK\n\n')
         for table, types in TABELE.items():
             if args.only and table not in args.only:
                 continue
