@@ -33,6 +33,8 @@ WITH sprzedaz_lekow AS (
     WHERE  s.DataSprzedazy >= ADD_MONTHS(SYSDATE, -12)
     AND    (l.OpisLeku LIKE N'%migren%' OR l.OpisLeku LIKE N'%bólu głowy%')
     GROUP  BY l.ID, l.Nazwa, pr.Nazwa
+    HAVING SUM(ps.Ilosc * (ps.CenaSprzedazy * (1 - ps.Rabat / 100) - dost.CenaZakupu))
+           >= 0.15 * SUM(ps.Ilosc * ps.CenaSprzedazy * (1 - ps.Rabat / 100))
 )
 SELECT Lek,
        Producent,

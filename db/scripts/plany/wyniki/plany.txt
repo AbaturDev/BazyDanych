@@ -1,0 +1,1199 @@
+######################################################################
+T1 - Analiza sprzedaży leków na ból głowy (SELECT)
+######################################################################
+SQL_ID  3nzf2nh6582bj, child number 0
+-------------------------------------
+WITH sprzedaz_lekow AS (     SELECT l.ID
+                      AS LekID,            l.Nazwa
+                             AS Lek,            pr.Nazwa
+                                  AS Producent,
+SUM(ps.Ilosc)                                             AS
+SprzedaneOpakowania,            COUNT(DISTINCT s.ID)
+                  AS LiczbaTransakcji,            ROUND(SUM(ps.Ilosc *
+ps.CenaSprzedazy * (1 - ps.Rabat / 100)), 2)
+                                          AS Przychod,
+ROUND(SUM(ps.Ilosc * (ps.CenaSprzedazy * (1 - ps.Rabat / 100)
+                       - dost.CenaZakupu)), 2)             AS Marza
+FROM   Lek l     JOIN   Producent        pr ON pr.ID = l.ProducentID
+ JOIN   PozycjaSprzedazy ps ON ps.LekID = l.ID     JOIN   Sprzedaz
+   s  ON s.ID  = ps.SprzedazID     CROSS  APPLY (         SELECT
+pz.CenaZakupu         FROM   P
+
+Plan hash value: 3439138284
+
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+| Id  | Operation                                | Name                      | Starts | E-Rows | Cost (%CPU)| A-Rows |   A-Time   | Buffers |  OMem |  1Mem | Used-Mem |
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+|   0 | SELECT STATEMENT                         |                           |      1 |        |   118M(100)|     72 |00:02:39.35 |      77M|       |       |          |
+|   1 |  TEMP TABLE TRANSFORMATION               |                           |      1 |        |            |     72 |00:02:39.35 |      77M|       |       |          |
+|   2 |   LOAD AS SELECT (CURSOR DURATION MEMORY)| SYS_TEMP_0FD9D6620_3124ED |      1 |        |            |      0 |00:02:39.34 |      77M|  1024 |  1024 |          |
+|*  3 |    FILTER                                |                           |      1 |        |            |    560 |00:02:39.34 |      77M|       |       |          |
+|   4 |     HASH GROUP BY                        |                           |      1 |    166 |   118M  (1)|    601 |00:02:39.34 |      77M|   803K|   803K| 8614K (0)|
+|   5 |      NESTED LOOPS                        |                           |      1 |    381K|   118M  (1)|  40431 |00:02:39.01 |      77M|       |       |          |
+|*  6 |       HASH JOIN                          |                           |      1 |    381K| 13255   (1)|  40989 |00:00:00.39 |   10447 |  1000K|  1000K| 1368K (0)|
+|   7 |        TABLE ACCESS FULL                 | PRODUCENT                 |      1 |    709 |     5   (0)|    709 |00:00:00.01 |      16 |       |       |          |
+|*  8 |        HASH JOIN                         |                           |      1 |    381K| 13249   (1)|  40989 |00:00:00.33 |   10431 |    15M|  3070K|   27M (0)|
+|*  9 |         HASH JOIN                        |                           |      1 |   1230K|  7191   (1)|    183K|00:00:00.18 |    9552 |  6489K|  2259K| 5958K (0)|
+|* 10 |          TABLE ACCESS FULL               | SPRZEDAZ                  |      1 |  65204 |   890   (1)|  91811 |00:00:00.07 |    3251 |       |       |          |
+|  11 |          TABLE ACCESS FULL               | POZYCJASPRZEDAZY          |      1 |   1230K|  1712   (1)|   1000K|00:00:00.09 |    6301 |       |       |          |
+|* 12 |         TABLE ACCESS FULL                | LEK                       |      1 |   1027 |   238   (0)|    754 |00:00:00.02 |     879 |       |       |          |
+|  13 |       VIEW                               | VW_LAT_FA4AACEA           |  40989 |      1 |   311   (1)|  40431 |00:02:38.57 |      77M|       |       |          |
+|* 14 |        COUNT STOPKEY                     |                           |  40989 |        |            |  40431 |00:02:38.54 |      77M|       |       |          |
+|  15 |         VIEW                             |                           |  40989 |      1 |   311   (1)|  40431 |00:02:38.45 |      77M|       |       |          |
+|* 16 |          SORT ORDER BY STOPKEY           |                           |  40989 |      1 |   311   (1)|  40431 |00:02:38.43 |      77M|  2048 |  2048 | 2048  (0)|
+|* 17 |           FILTER                         |                           |  40989 |        |            |   4162K|00:02:37.73 |      77M|       |       |          |
+|  18 |            NESTED LOOPS                  |                           |  40989 |      1 |   310   (1)|   4162K|00:02:37.41 |      77M|       |       |          |
+|  19 |             NESTED LOOPS                 |                           |  40989 |      1 |   310   (1)|   8065K|00:02:32.81 |      71M|       |       |          |
+|  20 |              NESTED LOOPS                |                           |  40989 |      1 |   309   (1)|   8065K|00:02:29.19 |      71M|       |       |          |
+|* 21 |               TABLE ACCESS FULL          | POZYCJAZAMOWIENIA         |  40989 |      1 |   308   (1)|     17M|00:02:09.42 |      45M|       |       |          |
+|* 22 |               TABLE ACCESS BY INDEX ROWID| ZAMOWIENIE                |     17M|      1 |     1   (0)|   8065K|00:00:17.45 |      25M|       |       |          |
+|* 23 |                INDEX UNIQUE SCAN         | PK_ZAMOWIENIE             |     17M|      1 |     0   (0)|     17M|00:00:07.81 |      16M|       |       |          |
+|* 24 |              INDEX UNIQUE SCAN           | PK_DOSTAWCA               |   8065K|      1 |     0   (0)|   8065K|00:00:02.27 |   40786 |       |       |          |
+|* 25 |             TABLE ACCESS BY INDEX ROWID  | DOSTAWCA                  |   8065K|      1 |     1   (0)|   4162K|00:00:03.53 |    6289K|       |       |          |
+|  26 |   SORT ORDER BY                          |                           |      1 |    166 |    21   (5)|     72 |00:00:00.01 |       0 | 20480 | 20480 |18432  (0)|
+|* 27 |    VIEW                                  |                           |      1 |    166 |    10   (0)|     72 |00:00:00.01 |       0 |       |       |          |
+|  28 |     TABLE ACCESS FULL                    | SYS_TEMP_0FD9D6620_3124ED |      1 |    166 |    10   (0)|    560 |00:00:00.01 |       0 |       |       |          |
+|  29 |     SORT AGGREGATE                       |                           |      1 |      1 |            |      1 |00:00:00.01 |       0 |       |       |          |
+|  30 |      VIEW                                |                           |      1 |    166 |    10   (0)|    560 |00:00:00.01 |       0 |       |       |          |
+|  31 |       TABLE ACCESS FULL                  | SYS_TEMP_0FD9D6620_3124ED |      1 |    166 |    10   (0)|    560 |00:00:00.01 |       0 |       |       |          |
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+Outline Data
+-------------
+
+  /*+
+      BEGIN_OUTLINE_DATA
+      IGNORE_OPTIM_EMBEDDED_HINTS
+      OPTIMIZER_FEATURES_ENABLE('23.1.0')
+      DB_VERSION('23.1.0')
+      ALL_ROWS
+      OUTLINE_LEAF(@"SEL$BF82FE11")
+      MERGE(@"SEL$6BD737F4" >"SEL$7")
+      OUTLINE_LEAF(@"SEL$8")
+      OUTLINE_LEAF(@"SEL$14C4A8CA")
+      MERGE(@"SEL$EE94F965" >"SEL$9")
+      OUTLINE_LEAF(@"SEL$D422CD16")
+      MATERIALIZE(@"SEL$9")
+      OUTLINE_LEAF(@"SEL$11")
+      OUTLINE_LEAF(@"SEL$D422CD17")
+      OUTLINE_LEAF(@"SEL$10")
+      OUTLINE(@"SEL$7")
+      OUTLINE(@"SEL$6BD737F4")
+      MERGE(@"SEL$5" >"SEL$6")
+      OUTLINE(@"SEL$9")
+      OUTLINE(@"SEL$EE94F965")
+      MERGE(@"SEL$9E43CB6E" >"SEL$4")
+      OUTLINE(@"SEL$6")
+      OUTLINE(@"SEL$5")
+      OUTLINE(@"SEL$4")
+      OUTLINE(@"SEL$9E43CB6E")
+      MERGE(@"SEL$58A6D7F6" >"SEL$3")
+      OUTLINE(@"SEL$3")
+      OUTLINE(@"SEL$58A6D7F6")
+      MERGE(@"SEL$1" >"SEL$2")
+      OUTLINE(@"SEL$2")
+      OUTLINE(@"SEL$1")
+      NO_ACCESS(@"SEL$10" "SPRZEDAZ_LEKOW"@"SEL$10")
+      PUSH_SUBQ(@"SEL$11")
+      LOAD_METHOD(@"SEL$10" * HIGH_WATER_MARK)
+      LOAD_TYPE(@"SEL$10" * SERIAL)
+      FULL(@"SEL$D422CD17" "T1"@"SEL$D422CD17")
+      NO_ACCESS(@"SEL$11" "SPRZEDAZ_LEKOW"@"SEL$11")
+      FULL(@"SEL$D422CD16" "T1"@"SEL$D422CD16")
+      FULL(@"SEL$14C4A8CA" "S"@"SEL$3")
+      FULL(@"SEL$14C4A8CA" "PS"@"SEL$2")
+      FULL(@"SEL$14C4A8CA" "L"@"SEL$1")
+      FULL(@"SEL$14C4A8CA" "PR"@"SEL$1")
+      NO_ACCESS(@"SEL$14C4A8CA" "DOST"@"SEL$4")
+      LEADING(@"SEL$14C4A8CA" "S"@"SEL$3" "PS"@"SEL$2" "L"@"SEL$1" "PR"@"SEL$1" "DOST"@"SEL$4")
+      USE_HASH(@"SEL$14C4A8CA" "PS"@"SEL$2")
+      USE_HASH(@"SEL$14C4A8CA" "L"@"SEL$1")
+      USE_HASH(@"SEL$14C4A8CA" "PR"@"SEL$1")
+      USE_NL(@"SEL$14C4A8CA" "DOST"@"SEL$4")
+      SWAP_JOIN_INPUTS(@"SEL$14C4A8CA" "PR"@"SEL$1")
+      USE_HASH_AGGREGATION(@"SEL$14C4A8CA" GROUP_BY)
+      NO_ACCESS(@"SEL$8" "from$_subquery$_014"@"SEL$8")
+      FULL(@"SEL$BF82FE11" "PZ"@"SEL$5")
+      INDEX_RS_ASC(@"SEL$BF82FE11" "Z"@"SEL$5" ("ZAMOWIENIE"."ID"))
+      INDEX(@"SEL$BF82FE11" "D"@"SEL$6" ("DOSTAWCA"."ID"))
+      LEADING(@"SEL$BF82FE11" "PZ"@"SEL$5" "Z"@"SEL$5" "D"@"SEL$6")
+      USE_NL(@"SEL$BF82FE11" "Z"@"SEL$5")
+      USE_NL(@"SEL$BF82FE11" "D"@"SEL$6")
+      NLJ_BATCHING(@"SEL$BF82FE11" "D"@"SEL$6")
+      END_OUTLINE_DATA
+  */
+
+Predicate Information (identified by operation id):
+---------------------------------------------------
+
+   3 - filter(SUM("PS"."ILOSC"*("PS"."CENASPRZEDAZY"*(1-"PS"."RABAT"/100)-"DOST"."CENAZAKUPU"))>=.15*SUM("PS"."ILOSC"*"PS"."CENASPRZEDAZY"*(1-"PS"."RABAT"/100))
+              )
+   6 - access("PR"."ID"="L"."PRODUCENTID")
+   8 - access("PS"."LEKID"="L"."ID")
+   9 - access("S"."ID"="PS"."SPRZEDAZID")
+  10 - filter("S"."DATASPRZEDAZY">=ADD_MONTHS(SYSDATE@!,-12))
+  12 - filter(("L"."OPISLEKU" LIKE U'%migren%' OR "L"."OPISLEKU" LIKE U'%b\00F3lu g\0142owy%'))
+  14 - filter(ROWNUM<=1)
+  16 - filter(ROWNUM<=1)
+  17 - filter("L"."CENADETALICZNA">0)
+  21 - filter(("PZ"."LEKID"="PS"."LEKID" AND "PZ"."DATADOSTARCZENIA"<="S"."DATASPRZEDAZY" AND "PZ"."CENAZAKUPU"<"L"."CENADETALICZNA"))
+  22 - filter(("Z"."STATUS"=U'ZREALIZOWANE' AND "Z"."DATAZAMOWIENIA">=ADD_MONTHS(SYSDATE@!,-36)))
+  23 - access("Z"."ID"="PZ"."ZAMOWIENIEID")
+  24 - access("D"."ID"="Z"."DOSTAWCAID")
+  25 - filter("D"."DATAPODPISANIAUMOWY"<=ADD_MONTHS(SYSDATE@!,-60))
+  27 - filter(("SPRZEDANEOPAKOWANIA">=100 AND "PRZYCHOD">))
+
+Note
+-----
+   - dynamic statistics used: dynamic sampling (level=2)
+
+######################################################################
+T2 - Analiza producentów (SELECT)
+######################################################################
+SQL_ID  0uqvhxps4uam9, child number 0
+-------------------------------------
+WITH SprzedazLek AS (     SELECT ps.LekID,            SUM(ps.Ilosc) AS
+LiczbaOpakowan,            SUM(ps.Ilosc * ps.CenaSprzedazy * (1 -
+ps.Rabat / 100)) AS Przychod     FROM PozycjaSprzedazy ps     JOIN
+Sprzedaz s ON s.ID = ps.SprzedazID     GROUP BY ps.LekID ),
+SredniaCenaZakupu AS (     SELECT pz.LekID,            SUM(pz.Ilosc *
+pz.CenaZakupu) / NULLIF(SUM(pz.Ilosc), 0) AS CenaZakupu     FROM
+PozycjaZamowienia pz     JOIN Zamowienie z ON z.ID = pz.ZamowienieID
+ WHERE z.Status = 'ZREALIZOWANE'     GROUP BY pz.LekID ),
+WynikiProducentow AS (     SELECT p.ID AS ProducentID,
+p.Nazwa AS Producent,            COALESCE(SUM(sl.Przychod), 0) AS
+Przychod,            COALESCE(SUM(sl.Przychod - sl.LiczbaOpakowan *
+COALESCE(szk.CenaZakupu, 0)), 0)                AS SzacowanaMarza,
+      COALESCE(SUM(sl.LiczbaOpakowan), 0) AS LiczbaSprzedanychOpakowan,
+           COUNT(DISTINCT l.ID) AS LiczbaRoznychLekow     FROM
+Producent p     LEFT JOIN Lek l ON l.ProducentID = p.ID     LEFT
+
+Plan hash value: 4169673438
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------
+| Id  | Operation                     | Name              | Starts | E-Rows | Cost (%CPU)| A-Rows |   A-Time   | Buffers |  OMem |  1Mem | Used-Mem |
+-----------------------------------------------------------------------------------------------------------------------------------------------------
+|   0 | SELECT STATEMENT              |                   |      1 |        |  8221 (100)|    124 |00:00:00.29 |    8563 |       |       |          |
+|   1 |  SORT ORDER BY                |                   |      1 |    709 |  8221   (9)|    124 |00:00:00.29 |    8563 | 43008 | 43008 |38912  (0)|
+|*  2 |   VIEW                        |                   |      1 |    709 |  8220   (9)|    124 |00:00:00.29 |    8563 |       |       |          |
+|   3 |    WINDOW BUFFER              |                   |      1 |    709 |  8220   (9)|    709 |00:00:00.29 |    8563 |   106K|   106K|96256  (0)|
+|   4 |     HASH GROUP BY             |                   |      1 |    709 |  8220   (9)|    709 |00:00:00.29 |    8563 |   811K|   811K| 1465K (0)|
+|   5 |      VIEW                     | VW_DAG_0          |      1 |     32M|  8220   (9)|   8000 |00:00:00.28 |    8563 |       |       |          |
+|   6 |       HASH GROUP BY           |                   |      1 |     32M|  8220   (9)|   8000 |00:00:00.28 |    8563 |  2869K|   999K|   49M (0)|
+|*  7 |        HASH JOIN OUTER        |                   |      1 |     32M|  7620   (2)|   8000 |00:00:00.25 |    8563 |  1664K|  1268K| 4305K (0)|
+|   8 |         JOIN FILTER CREATE    | :BF0000           |      1 |    214K|  1047   (1)|   8000 |00:00:00.04 |    2262 |       |       |          |
+|*  9 |          HASH JOIN OUTER      |                   |      1 |    214K|  1047   (1)|   8000 |00:00:00.03 |    2262 |  1614K|  1359K| 2871K (0)|
+|* 10 |           HASH JOIN OUTER     |                   |      1 |   8786 |   243   (0)|   8000 |00:00:00.01 |     895 |  1005K|  1005K| 1366K (0)|
+|  11 |            TABLE ACCESS FULL  | PRODUCENT         |      1 |    709 |     5   (0)|    709 |00:00:00.01 |      16 |       |       |          |
+|  12 |            TABLE ACCESS FULL  | LEK               |      1 |   8157 |   238   (0)|   8000 |00:00:00.01 |     879 |       |       |          |
+|  13 |           VIEW                |                   |      1 |    199K|   380   (2)|   6757 |00:00:00.03 |    1367 |       |       |          |
+|  14 |            HASH GROUP BY      |                   |      1 |    199K|   380   (2)|   6757 |00:00:00.03 |    1367 |  1406K|  1324K|   11M (0)|
+|* 15 |             HASH JOIN         |                   |      1 |    199K|   376   (1)|    168K|00:00:00.01 |    1367 |  2801K|  2801K| 3249K (0)|
+|* 16 |              TABLE ACCESS FULL| ZAMOWIENIE        |      1 |  22045 |    68   (0)|  19234 |00:00:00.01 |     248 |       |       |          |
+|  17 |              TABLE ACCESS FULL| POZYCJAZAMOWIENIA |      1 |    199K|   308   (1)|    175K|00:00:00.01 |    1119 |       |       |          |
+|  18 |         VIEW                  |                   |      1 |   1230K|  1731   (2)|   7754 |00:00:00.21 |    6301 |       |       |          |
+|  19 |          HASH GROUP BY        |                   |      1 |   1230K|  1731   (2)|   7754 |00:00:00.21 |    6301 |  1489K|  1324K|   41M (0)|
+|  20 |           JOIN FILTER USE     | :BF0000           |      1 |   1230K|  1712   (1)|   1000K|00:00:00.07 |    6301 |       |       |          |
+|* 21 |            TABLE ACCESS FULL  | POZYCJASPRZEDAZY  |      1 |   1230K|  1712   (1)|   1000K|00:00:00.06 |    6301 |       |       |          |
+-----------------------------------------------------------------------------------------------------------------------------------------------------
+
+Outline Data
+-------------
+
+  /*+
+      BEGIN_OUTLINE_DATA
+      IGNORE_OPTIM_EMBEDDED_HINTS
+      OPTIMIZER_FEATURES_ENABLE('23.1.0')
+      DB_VERSION('23.1.0')
+      ALL_ROWS
+      OUTLINE_LEAF(@"SEL$63835A22")
+      MERGE(@"SEL$4" >"SEL$7")
+      OUTLINE_LEAF(@"SEL$38C43603")
+      MERGE(@"SEL$1CB44532" >"SEL$6")
+      OUTLINE_LEAF(@"SEL$93B739A4")
+      TRANSFORM_DISTINCT_AGG(@"SEL$5284EFD7")
+      OUTLINE_LEAF(@"SEL$03886F53")
+      OUTLINE_LEAF(@"SEL$10")
+      OUTLINE(@"SEL$7")
+      OUTLINE(@"SEL$4")
+      OUTLINE(@"SEL$6")
+      OUTLINE(@"SEL$1CB44532")
+      ELIMINATE_JOIN(@"SEL$5" "S"@"SEL$5")
+      OUTLINE(@"SEL$5284EFD7")
+      MERGE(@"SEL$93479B01" >"SEL$9")
+      OUTLINE(@"SEL$5")
+      OUTLINE(@"SEL$9")
+      OUTLINE(@"SEL$93479B01")
+      MERGE(@"SEL$42D95501" >"SEL$B6446649")
+      OUTLINE(@"SEL$B6446649")
+      ANSI_REARCH(@"SEL$8")
+      OUTLINE(@"SEL$42D95501")
+      MERGE(@"SEL$66B15841" >"SEL$E15FCA1A")
+      OUTLINE(@"SEL$8")
+      OUTLINE(@"SEL$E15FCA1A")
+      ANSI_REARCH(@"SEL$41465E65")
+      OUTLINE(@"SEL$66B15841")
+      MERGE(@"SEL$8812AA4E" >"SEL$10B37F33")
+      OUTLINE(@"SEL$41465E65")
+      ANSI_REARCH(@"SEL$3")
+      OUTLINE(@"SEL$10B37F33")
+      ANSI_REARCH(@"SEL$948754D7")
+      OUTLINE(@"SEL$8812AA4E")
+      ANSI_REARCH(@"SEL$1")
+      OUTLINE(@"SEL$3")
+      OUTLINE(@"SEL$948754D7")
+      ANSI_REARCH(@"SEL$2")
+      OUTLINE(@"SEL$1")
+      OUTLINE(@"SEL$2")
+      NO_ACCESS(@"SEL$10" "WYNIKIZESREDNIA"@"SEL$10")
+      NO_ACCESS(@"SEL$03886F53" "VW_DAG_0"@"SEL$03886F53")
+      USE_HASH_AGGREGATION(@"SEL$03886F53" GROUP_BY)
+      FULL(@"SEL$93B739A4" "P"@"SEL$1")
+      FULL(@"SEL$93B739A4" "L"@"SEL$1")
+      NO_ACCESS(@"SEL$93B739A4" "SZK"@"SEL$3")
+      NO_ACCESS(@"SEL$93B739A4" "SL"@"SEL$2")
+      LEADING(@"SEL$93B739A4" "P"@"SEL$1" "L"@"SEL$1" "SZK"@"SEL$3" "SL"@"SEL$2")
+      USE_HASH(@"SEL$93B739A4" "L"@"SEL$1")
+      USE_HASH(@"SEL$93B739A4" "SZK"@"SEL$3")
+      USE_HASH(@"SEL$93B739A4" "SL"@"SEL$2")
+      PX_JOIN_FILTER(@"SEL$93B739A4" "SL"@"SEL$2")
+      USE_HASH_AGGREGATION(@"SEL$93B739A4" GROUP_BY)
+      FULL(@"SEL$63835A22" "Z"@"SEL$4")
+      FULL(@"SEL$63835A22" "PZ"@"SEL$4")
+      LEADING(@"SEL$63835A22" "Z"@"SEL$4" "PZ"@"SEL$4")
+      USE_HASH(@"SEL$63835A22" "PZ"@"SEL$4")
+      USE_HASH_AGGREGATION(@"SEL$63835A22" GROUP_BY)
+      FULL(@"SEL$38C43603" "PS"@"SEL$5")
+      USE_HASH_AGGREGATION(@"SEL$38C43603" GROUP_BY)
+      END_OUTLINE_DATA
+  */
+
+Predicate Information (identified by operation id):
+---------------------------------------------------
+
+   2 - filter("PRZYCHOD">"SREDNIPRZYCHODPRODUCENTA")
+   7 - access("SL"."LEKID"="L"."ID")
+   9 - access("SZK"."LEKID"="L"."ID")
+  10 - access("L"."PRODUCENTID"="P"."ID")
+  15 - access("Z"."ID"="PZ"."ZAMOWIENIEID")
+  16 - filter("Z"."STATUS"=U'ZREALIZOWANE')
+  21 - filter(SYS_OP_BLOOM_FILTER(:BF0000,"PS"."LEKID"))
+
+Note
+-----
+   - dynamic statistics used: dynamic sampling (level=2)
+
+######################################################################
+T3 - Najczęściej sprzedawane leki (SELECT)
+######################################################################
+SQL_ID  1zu829sxwj3tv, child number 1
+-------------------------------------
+WITH SprzedazLekow AS (     SELECT l.ID AS LekID,            l.Nazwa AS
+Lek,            p.ID AS ProducentID,            p.Nazwa AS Producent,
+         COALESCE(SUM(ps.Ilosc), 0) AS LiczbaSprzedanychOpakowan,
+     COALESCE(SUM(ps.Ilosc * ps.CenaSprzedazy * (1 - ps.Rabat / 100)),
+0) AS Przychod     FROM Lek l     JOIN Producent p ON p.ID =
+l.ProducentID     LEFT JOIN PozycjaSprzedazy ps ON ps.LekID = l.ID
+LEFT JOIN Sprzedaz s ON s.ID = ps.SprzedazID     GROUP BY l.ID,
+l.Nazwa, p.ID, p.Nazwa ), SprzedazZeSrednia AS (     SELECT sl.*,
+     AVG(sl.LiczbaSprzedanychOpakowan) OVER () AS SredniaSprzedazNaLek
+   FROM SprzedazLekow sl ) SELECT LekID,        Lek,
+ProducentID,        Producent,        LiczbaSprzedanychOpakowan,
+Przychod,        SredniaSprzedazNaLek FROM SprzedazZeSrednia WHERE
+LiczbaSprzedanychOpakowan > SredniaSprzedazNaLek ORDER BY
+LiczbaSprzedanychOpakowan DESC, Lek
+
+Plan hash value: 1127306012
+
+----------------------------------------------------------------------------------------------------------------------------------------------
+| Id  | Operation               | Name             | Starts | E-Rows | Cost (%CPU)| A-Rows |   A-Time   | Buffers |  OMem |  1Mem | Used-Mem |
+----------------------------------------------------------------------------------------------------------------------------------------------
+|   0 | SELECT STATEMENT        |                  |      1 |        | 77176 (100)|   1588 |00:00:00.28 |    7196 |       |       |          |
+|   1 |  SORT ORDER BY          |                  |      1 |   1235K| 77176   (1)|   1588 |00:00:00.28 |    7196 |   478K|   448K|  424K (0)|
+|*  2 |   VIEW                  |                  |      1 |   1235K|  5759   (1)|   1588 |00:00:00.28 |    7196 |       |       |          |
+|   3 |    WINDOW BUFFER        |                  |      1 |   1235K|  5759   (1)|   8000 |00:00:00.28 |    7196 |  1753K|   641K| 1558K (0)|
+|   4 |     HASH GROUP BY       |                  |      1 |   1235K|  5759   (1)|   8000 |00:00:00.28 |    7196 |  4509K|  1925K|   25M (0)|
+|*  5 |      HASH JOIN          |                  |      1 |   1235K|  5740   (1)|   1000K|00:00:00.07 |    7196 |  1000K|  1000K| 1419K (0)|
+|   6 |       TABLE ACCESS FULL | PRODUCENT        |      1 |    709 |     5   (0)|    709 |00:00:00.01 |      16 |       |       |          |
+|*  7 |       HASH JOIN OUTER   |                  |      1 |   1235K|  5733   (1)|   1000K|00:00:00.05 |    7180 |  1933K|  1146K| 2896K (0)|
+|   8 |        TABLE ACCESS FULL| LEK              |      1 |   8157 |   238   (0)|   8000 |00:00:00.01 |     879 |       |       |          |
+|   9 |        TABLE ACCESS FULL| POZYCJASPRZEDAZY |      1 |   1230K|  1712   (1)|   1000K|00:00:00.03 |    6301 |       |       |          |
+----------------------------------------------------------------------------------------------------------------------------------------------
+
+Outline Data
+-------------
+
+  /*+
+      BEGIN_OUTLINE_DATA
+      IGNORE_OPTIM_EMBEDDED_HINTS
+      OPTIMIZER_FEATURES_ENABLE('23.1.0')
+      DB_VERSION('23.1.0')
+      ALL_ROWS
+      OUTLINE_LEAF(@"SEL$89F496F7")
+      ELIMINATE_JOIN(@"SEL$2312B254" "S"@"SEL$3")
+      OUTLINE_LEAF(@"SEL$6")
+      OUTLINE(@"SEL$2312B254")
+      MERGE(@"SEL$62D7CD7B" >"SEL$5")
+      OUTLINE(@"SEL$5")
+      OUTLINE(@"SEL$62D7CD7B")
+      MERGE(@"SEL$BF83D006" >"SEL$D2E4DCB5")
+      OUTLINE(@"SEL$D2E4DCB5")
+      ANSI_REARCH(@"SEL$4")
+      OUTLINE(@"SEL$BF83D006")
+      MERGE(@"SEL$8B0CE372" >"SEL$791DB105")
+      OUTLINE(@"SEL$4")
+      OUTLINE(@"SEL$791DB105")
+      ANSI_REARCH(@"SEL$F52A8B21")
+      OUTLINE(@"SEL$8B0CE372")
+      MERGE(@"SEL$1" >"SEL$1A566D0B")
+      OUTLINE(@"SEL$F52A8B21")
+      ANSI_REARCH(@"SEL$3")
+      OUTLINE(@"SEL$1A566D0B")
+      ANSI_REARCH(@"SEL$2")
+      OUTLINE(@"SEL$1")
+      OUTLINE(@"SEL$3")
+      OUTLINE(@"SEL$2")
+      NO_ACCESS(@"SEL$6" "SPRZEDAZZESREDNIA"@"SEL$6")
+      FULL(@"SEL$89F496F7" "L"@"SEL$1")
+      FULL(@"SEL$89F496F7" "PS"@"SEL$2")
+      FULL(@"SEL$89F496F7" "P"@"SEL$1")
+      LEADING(@"SEL$89F496F7" "L"@"SEL$1" "PS"@"SEL$2" "P"@"SEL$1")
+      USE_HASH(@"SEL$89F496F7" "PS"@"SEL$2")
+      USE_HASH(@"SEL$89F496F7" "P"@"SEL$1")
+      SWAP_JOIN_INPUTS(@"SEL$89F496F7" "P"@"SEL$1")
+      USE_HASH_AGGREGATION(@"SEL$89F496F7" GROUP_BY)
+      END_OUTLINE_DATA
+  */
+
+Predicate Information (identified by operation id):
+---------------------------------------------------
+
+   2 - filter("LICZBASPRZEDANYCHOPAKOWAN">"SREDNIASPRZEDAZNALEK")
+   5 - access("P"."ID"="L"."PRODUCENTID")
+   7 - access("PS"."LEKID"="L"."ID")
+
+Note
+-----
+   - dynamic statistics used: dynamic sampling (level=2)
+
+######################################################################
+T4.1 - Nagłówki zamówień (INSERT)
+######################################################################
+SQL_ID  ckjdz350j0pdc, child number 0
+-------------------------------------
+INSERT INTO Zamowienie (DostawcaID, DataZamowienia, PlanowanaDostawa,
+Status,                         WartoscZamowienia, KodZamowienia) WITH
+sprzedaz_12m AS (     SELECT ps.LekID,            SUM(ps.Ilosc) AS
+Sprzedano12m,            SUM(CASE WHEN s.DataSprzedazy >=
+ADD_MONTHS(SYSDATE, -3)                     THEN ps.Ilosc ELSE 0 END)
+AS Sprzedano3m     FROM   PozycjaSprzedazy ps     JOIN   Sprzedaz s ON
+s.ID = ps.SprzedazID     WHERE  s.DataSprzedazy >= ADD_MONTHS(SYSDATE,
+-12)     GROUP  BY ps.LekID     HAVING SUM(ps.Ilosc) >= 100     AND
+SUM(CASE WHEN s.DataSprzedazy >= ADD_MONTHS(SYSDATE, -3)
+     THEN ps.Ilosc ELSE 0 END) / 3 >= 0.7 * SUM(ps.Ilosc) / 12 ),
+wiarygodni_dostawcy AS (     SELECT z.DostawcaID     FROM   Zamowienie
+z     LEFT   JOIN PozycjaZamowienia pz ON pz.ZamowienieID = z.ID
+GROUP  BY z.DostawcaID     HAVING COUNT(DISTINCT CASE WHEN z.Status =
+'ANULOWANE' THEN z.ID END)            < 0.05 * COUNT(DISTINCT z.ID)
+AND    AVG(pz.DataDostarczenia
+
+Plan hash value: 3807460534
+
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+| Id  | Operation                                | Name              | Starts | E-Rows | Cost (%CPU)| A-Rows |   A-Time   | Buffers | Reads  | Writes |  OMem |  1Mem | Used-Mem | Used-Tmp|
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+|   0 | INSERT STATEMENT                         |                   |      1 |        | 10173 (100)|      0 |00:00:01.93 |   21629 |   2700 |   2700 |       |       |          |         |
+|   1 |  LOAD TABLE CONVENTIONAL                 | ZAMOWIENIE        |      1 |        |            |      0 |00:00:01.93 |   21629 |   2700 |   2700 |       |       |          |         |
+|   2 |   SEQUENCE                               | ISEQ$$_73297      |      1 |        |            |     21 |00:00:01.93 |   21597 |   2700 |   2700 |       |       |          |         |
+|   3 |    WINDOW SORT                           |                   |      1 |    247 | 10173   (1)|     21 |00:00:01.92 |   21576 |   2700 |   2700 |  2048 |  2048 | 2048  (0)|         |
+|   4 |     NESTED LOOPS                         |                   |      1 |    247 | 10173   (1)|     21 |00:00:01.92 |   21576 |   2700 |   2700 |       |       |          |         |
+|   5 |      VIEW                                |                   |      1 |      1 |    68   (0)|      1 |00:00:00.01 |     248 |      0 |      0 |       |       |          |         |
+|   6 |       SORT AGGREGATE                     |                   |      1 |      1 |            |      1 |00:00:00.01 |     248 |      0 |      0 |       |       |          |         |
+|   7 |        TABLE ACCESS FULL                 | ZAMOWIENIE        |      1 |  22843 |    68   (0)|  20000 |00:00:00.01 |     248 |      0 |      0 |       |       |          |         |
+|   8 |      VIEW                                |                   |      1 |    247 | 10105   (1)|     21 |00:00:01.92 |   21328 |   2700 |   2700 |       |       |          |         |
+|   9 |       SORT UNIQUE                        |                   |      1 |    247 | 10105   (1)|     21 |00:00:01.92 |   21328 |   2700 |   2700 | 73728 | 73728 |          |         |
+|* 10 |        HASH JOIN ANTI                    |                   |      1 |    562 | 10104   (1)|     35 |00:00:01.92 |   21328 |   2700 |   2700 |  1083K|  1083K| 1370K (0)|         |
+|* 11 |         FILTER                           |                   |      1 |        |            |     78 |00:00:01.91 |   19961 |   2700 |   2700 |       |       |          |         |
+|* 12 |          HASH JOIN OUTER                 |                   |      1 |    562 |  9728   (1)|    388 |00:00:01.91 |   19961 |   2700 |   2700 |  1173K|  1173K| 1241K (0)|         |
+|  13 |           JOIN FILTER CREATE             | :BF0000           |      1 |    562 |  7995   (1)|    388 |00:00:01.73 |   13660 |   2700 |   2700 |       |       |          |         |
+|* 14 |            HASH JOIN OUTER               |                   |      1 |    562 |  7995   (1)|    388 |00:00:01.73 |   13660 |   2700 |   2700 |  1316K|  1316K| 1211K (0)|         |
+|  15 |             JOIN FILTER CREATE           | :BF0001           |      1 |    562 |  7615   (1)|    388 |00:00:01.69 |   12293 |   2700 |   2700 |       |       |          |         |
+|* 16 |              HASH JOIN                   |                   |      1 |    562 |  7615   (1)|    388 |00:00:01.69 |   12293 |   2700 |   2700 |  1744K|  1744K| 1380K (0)|         |
+|  17 |               JOIN FILTER CREATE         | :BF0002           |      1 |    509 |  1157   (1)|   5586 |00:00:00.12 |    2741 |      0 |      0 |       |       |          |         |
+|* 18 |                VIEW                      |                   |      1 |    509 |  1157   (1)|   5586 |00:00:00.12 |    2741 |      0 |      0 |       |       |          |         |
+|* 19 |                 WINDOW SORT PUSHED RANK  |                   |      1 |    509 |  1157   (1)|   5586 |00:00:00.12 |    2741 |      0 |      0 |  3809K|   839K| 3385K (0)|         |
+|* 20 |                  HASH JOIN               |                   |      1 |    509 |  1156   (1)|  62973 |00:00:00.09 |    2741 |      0 |      0 |  1513K|  1345K| 1882K (0)|         |
+|* 21 |                   HASH JOIN              |                   |      1 |     58 |   848   (1)|   7195 |00:00:00.08 |    1622 |      0 |      0 |  1544K|  1453K| 2088K (0)|         |
+|* 22 |                    HASH JOIN             |                   |      1 |     89 |   845   (1)|   7893 |00:00:00.07 |    1615 |      0 |      0 |  2546K|  2546K| 1691K (0)|         |
+|  23 |                     VIEW                 |                   |      1 |      1 |   777   (1)|     98 |00:00:00.07 |    1367 |      0 |      0 |       |       |          |         |
+|* 24 |                      FILTER              |                   |      1 |        |            |     98 |00:00:00.07 |    1367 |      0 |      0 |       |       |          |         |
+|  25 |                       SORT GROUP BY      |                   |      1 |      1 |   777   (1)|    263 |00:00:00.07 |    1367 |      0 |      0 |   875K|   875K| 1180K (0)|         |
+|* 26 |                        HASH JOIN OUTER   |                   |      1 |    220K|   773   (1)|    175K|00:00:00.01 |    1367 |      0 |      0 |  2579K|  1474K| 3225K (0)|         |
+|  27 |                         TABLE ACCESS FULL| ZAMOWIENIE        |      1 |  22843 |    68   (0)|  20000 |00:00:00.01 |     248 |      0 |      0 |       |       |          |         |
+|  28 |                         TABLE ACCESS FULL| POZYCJAZAMOWIENIA |      1 |    199K|   308   (1)|    175K|00:00:00.01 |    1119 |      0 |      0 |       |       |          |         |
+|* 29 |                     TABLE ACCESS FULL    | ZAMOWIENIE        |      1 |  22045 |    68   (0)|  19234 |00:00:00.01 |     248 |      0 |      0 |       |       |          |         |
+|* 30 |                    TABLE ACCESS FULL     | DOSTAWCA          |      1 |    161 |     3   (0)|    161 |00:00:00.01 |       7 |      0 |      0 |       |       |          |         |
+|* 31 |                   TABLE ACCESS FULL      | POZYCJAZAMOWIENIA |      1 |    192K|   308   (1)|    168K|00:00:00.01 |    1119 |      0 |      0 |       |       |          |         |
+|  32 |               VIEW                       |                   |      1 |    220K|  6457   (1)|    388 |00:00:01.57 |    9552 |   2700 |   2700 |       |       |          |         |
+|* 33 |                FILTER                    |                   |      1 |        |            |    388 |00:00:01.57 |    9552 |   2700 |   2700 |       |       |          |         |
+|  34 |                 SORT GROUP BY            |                   |      1 |    220K|  6457   (1)|   6634 |00:00:01.57 |    9552 |   2700 |   2700 |   690K|   690K|  613K (0)|         |
+|  35 |                  JOIN FILTER USE         | :BF0002           |      1 |    220K|  6453   (1)|    183K|00:00:01.54 |    9552 |   2700 |   2700 |       |       |          |         |
+|* 36 |                   HASH JOIN              |                   |      1 |    220K|  6453   (1)|    183K|00:00:01.52 |    9552 |   2700 |   2700 |    66M|  7454K|   79M (1)|      23M|
+|  37 |                    VIEW                  | VW_GBC_11         |      1 |   1230K|  1730   (2)|    998K|00:00:00.86 |    6301 |      0 |      0 |       |       |          |         |
+|  38 |                     SORT GROUP BY        |                   |      1 |   1230K|  1730   (2)|    998K|00:00:00.78 |    6301 |      0 |      0 |    74M|  2971K|   65M (0)|         |
+|  39 |                      TABLE ACCESS FULL   | POZYCJASPRZEDAZY  |      1 |   1230K|  1711   (1)|   1000K|00:00:00.03 |    6301 |      0 |      0 |       |       |          |         |
+|* 40 |                    TABLE ACCESS FULL     | SPRZEDAZ          |      1 |  65204 |   890   (1)|  91811 |00:00:00.03 |    3251 |      0 |      0 |       |       |          |         |
+|  41 |             VIEW                         |                   |      1 |    192K|   380   (2)|   6757 |00:00:00.04 |    1367 |      0 |      0 |       |       |          |         |
+|  42 |              SORT GROUP BY               |                   |      1 |    192K|   380   (2)|   6757 |00:00:00.04 |    1367 |      0 |      0 |   549K|   549K|  487K (0)|         |
+|* 43 |               HASH JOIN                  |                   |      1 |    192K|   377   (1)|    168K|00:00:00.01 |    1367 |      0 |      0 |  2394K|  1666K| 3236K (0)|         |
+|* 44 |                TABLE ACCESS FULL         | ZAMOWIENIE        |      1 |  22045 |    68   (0)|  19234 |00:00:00.01 |     248 |      0 |      0 |       |       |          |         |
+|  45 |                JOIN FILTER USE           | :BF0001           |      1 |    192K|   308   (1)|    168K|00:00:00.01 |    1119 |      0 |      0 |       |       |          |         |
+|* 46 |                 TABLE ACCESS FULL        | POZYCJAZAMOWIENIA |      1 |    192K|   308   (1)|    168K|00:00:00.01 |    1119 |      0 |      0 |       |       |          |         |
+|  47 |           VIEW                           |                   |      1 |   1230K|  1730   (2)|   7754 |00:00:00.18 |    6301 |      0 |      0 |       |       |          |         |
+|  48 |            SORT GROUP BY                 |                   |      1 |   1230K|  1730   (2)|   7754 |00:00:00.18 |    6301 |      0 |      0 |   619K|   619K|  550K (0)|         |
+|  49 |             JOIN FILTER USE              | :BF0000           |      1 |   1230K|  1711   (1)|   1000K|00:00:00.02 |    6301 |      0 |      0 |       |       |          |         |
+|* 50 |              TABLE ACCESS FULL           | POZYCJASPRZEDAZY  |      1 |   1230K|  1711   (1)|   1000K|00:00:00.02 |    6301 |      0 |      0 |       |       |          |         |
+|  51 |         VIEW                             | VW_SQ_1           |      1 |  16228 |   376   (1)|   1347 |00:00:00.01 |    1367 |      0 |      0 |       |       |          |         |
+|* 52 |          HASH JOIN                       |                   |      1 |  16228 |   376   (1)|   1347 |00:00:00.01 |    1367 |      0 |      0 |  1298K|  1298K| 1361K (0)|         |
+|* 53 |           TABLE ACCESS FULL              | ZAMOWIENIE        |      1 |    108 |    68   (0)|    158 |00:00:00.01 |     248 |      0 |      0 |       |       |          |         |
+|  54 |           TABLE ACCESS FULL              | POZYCJAZAMOWIENIA |      1 |    199K|   308   (1)|    175K|00:00:00.01 |    1119 |      0 |      0 |       |       |          |         |
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+Outline Data
+-------------
+
+  /*+
+      BEGIN_OUTLINE_DATA
+      IGNORE_OPTIM_EMBEDDED_HINTS
+      OPTIMIZER_FEATURES_ENABLE('23.1.0')
+      DB_VERSION('23.1.0')
+      ALL_ROWS
+      OUTLINE_LEAF(@"SEL$5874317F")
+      OUTLINE_LEAF(@"SEL$F9470439")
+      OUTLINE_LEAF(@"SEL$7176E272")
+      PLACE_GROUP_BY(@"SEL$C4E9B50E" ( "PS"@"SEL$13" ) 11)
+      OUTLINE_LEAF(@"SEL$D6D85665")
+      MERGE(@"SEL$8BB7F254" >"SEL$300E1A3C")
+      OUTLINE_LEAF(@"SEL$8621587D")
+      MERGE(@"SEL$425429CA" >"SEL$16")
+      OUTLINE_LEAF(@"SEL$C3E8F37D")
+      MERGE(@"SEL$8" >"SEL$17")
+      OUTLINE_LEAF(@"SEL$18")
+      OUTLINE_LEAF(@"SEL$8B2377FE")
+      UNNEST(@"SEL$3207EEE9")
+      OUTLINE_LEAF(@"SEL$3")
+      OUTLINE_LEAF(@"SEL$D3328677")
+      MERGE(@"SEL$1" >"SEL$21")
+      OUTLINE_LEAF(@"INS$1")
+      OUTLINE(@"SEL$3207EEE9")
+      MERGE(@"SEL$4" >"SEL$20")
+      OUTLINE(@"SEL$CD8EB3E0")
+      OUTLINE(@"SEL$C4E9B50E")
+      MERGE(@"SEL$13" >"SEL$14")
+      OUTLINE(@"SEL$300E1A3C")
+      ANSI_REARCH(@"SEL$15")
+      OUTLINE(@"SEL$8BB7F254")
+      ANSI_REARCH(@"SEL$12")
+      OUTLINE(@"SEL$16")
+      OUTLINE(@"SEL$425429CA")
+      MERGE(@"SEL$EA19AA3F" >"SEL$11")
+      OUTLINE(@"SEL$17")
+      OUTLINE(@"SEL$8")
+      OUTLINE(@"SEL$1A2454AA")
+      OUTLINE(@"SEL$21")
+      OUTLINE(@"SEL$1")
+      OUTLINE(@"SEL$20")
+      OUTLINE(@"SEL$4")
+      OUTLINE(@"SEL$14")
+      OUTLINE(@"SEL$13")
+      OUTLINE(@"SEL$15")
+      OUTLINE(@"SEL$12")
+      OUTLINE(@"SEL$11")
+      OUTLINE(@"SEL$EA19AA3F")
+      MERGE(@"SEL$9" >"SEL$10")
+      OUTLINE(@"SEL$F7A87A34")
+      MERGE(@"SEL$11574941" >"SEL$2")
+      OUTLINE(@"SEL$10")
+      OUTLINE(@"SEL$9")
+      OUTLINE(@"SEL$2")
+      OUTLINE(@"SEL$11574941")
+      MERGE(@"SEL$38E1C6DE" >"SEL$22BAECB0")
+      OUTLINE(@"SEL$22BAECB0")
+      ANSI_REARCH(@"SEL$19")
+      OUTLINE(@"SEL$38E1C6DE")
+      MERGE(@"SEL$96740B85" >"SEL$DA4F3EA6")
+      OUTLINE(@"SEL$19")
+      OUTLINE(@"SEL$DA4F3EA6")
+      ANSI_REARCH(@"SEL$463D4B3F")
+      OUTLINE(@"SEL$96740B85")
+      MERGE(@"SEL$5" >"SEL$9430E53D")
+      OUTLINE(@"SEL$463D4B3F")
+      ANSI_REARCH(@"SEL$7")
+      OUTLINE(@"SEL$9430E53D")
+      ANSI_REARCH(@"SEL$6")
+      OUTLINE(@"SEL$5")
+      OUTLINE(@"SEL$7")
+      OUTLINE(@"SEL$6")
+      LOAD_METHOD(@"INS$1" "ZAMOWIENIE"@"INS$1" CONVENTIONAL)
+      LOAD_TYPE(@"INS$1" "ZAMOWIENIE"@"INS$1" SERIAL)
+      FULL(@"INS$1" "ZAMOWIENIE"@"INS$1")
+      NO_ACCESS(@"SEL$D3328677" "M"@"SEL$1")
+      NO_ACCESS(@"SEL$D3328677" "K"@"SEL$1")
+      LEADING(@"SEL$D3328677" "M"@"SEL$1" "K"@"SEL$1")
+      USE_NL(@"SEL$D3328677" "K"@"SEL$1")
+      NO_ACCESS(@"SEL$8B2377FE" "OD"@"SEL$5")
+      NO_ACCESS(@"SEL$8B2377FE" "S"@"SEL$5")
+      NO_ACCESS(@"SEL$8B2377FE" "DZ"@"SEL$6")
+      NO_ACCESS(@"SEL$8B2377FE" "SZ"@"SEL$7")
+      NO_ACCESS(@"SEL$8B2377FE" "VW_SQ_1"@"SEL$1A2454AA")
+      LEADING(@"SEL$8B2377FE" "OD"@"SEL$5" "S"@"SEL$5" "DZ"@"SEL$6" "SZ"@"SEL$7" "VW_SQ_1"@"SEL$1A2454AA")
+      USE_HASH(@"SEL$8B2377FE" "S"@"SEL$5")
+      USE_HASH(@"SEL$8B2377FE" "DZ"@"SEL$6")
+      USE_HASH(@"SEL$8B2377FE" "SZ"@"SEL$7")
+      USE_HASH(@"SEL$8B2377FE" "VW_SQ_1"@"SEL$1A2454AA")
+      PX_JOIN_FILTER(@"SEL$8B2377FE" "S"@"SEL$5")
+      PX_JOIN_FILTER(@"SEL$8B2377FE" "DZ"@"SEL$6")
+      PX_JOIN_FILTER(@"SEL$8B2377FE" "SZ"@"SEL$7")
+      FULL(@"SEL$3" "ZAMOWIENIE"@"SEL$3")
+      FULL(@"SEL$5874317F" "Z"@"SEL$4")
+      FULL(@"SEL$5874317F" "PZ"@"SEL$4")
+      LEADING(@"SEL$5874317F" "Z"@"SEL$4" "PZ"@"SEL$4")
+      USE_HASH(@"SEL$5874317F" "PZ"@"SEL$4")
+      NO_ACCESS(@"SEL$7176E272" "VW_GBC_11"@"SEL$CD8EB3E0")
+      FULL(@"SEL$7176E272" "S"@"SEL$13")
+      LEADING(@"SEL$7176E272" "VW_GBC_11"@"SEL$CD8EB3E0" "S"@"SEL$13")
+      USE_HASH(@"SEL$7176E272" "S"@"SEL$13")
+      NO_ACCESS(@"SEL$8621587D" "WD"@"SEL$11")
+      FULL(@"SEL$8621587D" "Z"@"SEL$9")
+      FULL(@"SEL$8621587D" "D"@"SEL$10")
+      FULL(@"SEL$8621587D" "PZ"@"SEL$9")
+      LEADING(@"SEL$8621587D" "WD"@"SEL$11" "Z"@"SEL$9" "D"@"SEL$10" "PZ"@"SEL$9")
+      USE_HASH(@"SEL$8621587D" "Z"@"SEL$9")
+      USE_HASH(@"SEL$8621587D" "D"@"SEL$10")
+      USE_HASH(@"SEL$8621587D" "PZ"@"SEL$9")
+      FULL(@"SEL$C3E8F37D" "Z"@"SEL$8")
+      FULL(@"SEL$C3E8F37D" "PZ"@"SEL$8")
+      LEADING(@"SEL$C3E8F37D" "Z"@"SEL$8" "PZ"@"SEL$8")
+      USE_HASH(@"SEL$C3E8F37D" "PZ"@"SEL$8")
+      FULL(@"SEL$18" "PS"@"SEL$18")
+      FULL(@"SEL$D6D85665" "Z"@"SEL$12")
+      FULL(@"SEL$D6D85665" "PZ"@"SEL$12")
+      LEADING(@"SEL$D6D85665" "Z"@"SEL$12" "PZ"@"SEL$12")
+      USE_HASH(@"SEL$D6D85665" "PZ"@"SEL$12")
+      FULL(@"SEL$F9470439" "PS"@"SEL$13")
+      END_OUTLINE_DATA
+  */
+
+Predicate Information (identified by operation id):
+---------------------------------------------------
+
+  10 - access("ITEM_1"="S"."LEKID")
+  11 - filter(GREATEST(NVL("DZ"."DOSTARCZONO",0)-NVL("SZ"."SPRZEDANO",0),0)<2*GREATEST("S"."SPRZEDANO12M"/12,"S"."SPRZEDANO3M"/3))
+  12 - access("SZ"."LEKID"="S"."LEKID")
+  14 - access("DZ"."LEKID"="S"."LEKID")
+  16 - access("OD"."LEKID"="S"."LEKID")
+  18 - filter("OD"."RN"=1)
+  19 - filter(ROW_NUMBER() OVER ( PARTITION BY "PZ"."LEKID" ORDER BY "PZ"."DATADOSTARCZENIA" DESC ,"PZ"."ID" DESC )<=1)
+  20 - access("Z"."ID"="PZ"."ZAMOWIENIEID")
+  21 - access("D"."ID"="Z"."DOSTAWCAID")
+  22 - access("WD"."DOSTAWCAID"="Z"."DOSTAWCAID")
+  24 - filter((COUNT(DISTINCT CASE "Z"."STATUS" WHEN U'ANULOWANE' THEN "Z"."ID" END )<.05*COUNT(DISTINCT "Z"."ID") AND
+              SUM("PZ"."DATADOSTARCZENIA"-"Z"."PLANOWANADOSTAWA")/COUNT("PZ"."DATADOSTARCZENIA"-"Z"."PLANOWANADOSTAWA")<=1))
+  26 - access("PZ"."ZAMOWIENIEID"="Z"."ID")
+  29 - filter("Z"."STATUS"=U'ZREALIZOWANE')
+  30 - filter("D"."DATAPODPISANIAUMOWY"<=ADD_MONTHS(SYSDATE@!,-36))
+  31 - filter("PZ"."DATADOSTARCZENIA" IS NOT NULL)
+  33 - filter((SUM("ITEM_2")>=100 AND SUM(CASE  WHEN "S"."DATASPRZEDAZY">=ADD_MONTHS(SYSDATE@!,-3) THEN "ITEM_2" ELSE "ITEM_3" END )/3>=.7*SUM("ITEM_2")/12))
+  36 - access("S"."ID"="ITEM_1")
+  40 - filter("S"."DATASPRZEDAZY">=ADD_MONTHS(SYSDATE@!,-12))
+  43 - access("Z"."ID"="PZ"."ZAMOWIENIEID")
+  44 - filter("Z"."STATUS"=U'ZREALIZOWANE')
+  46 - filter(("PZ"."DATADOSTARCZENIA" IS NOT NULL AND SYS_OP_BLOOM_FILTER(:BF0001,"PZ"."LEKID")))
+  50 - filter(SYS_OP_BLOOM_FILTER(:BF0000,"PS"."LEKID"))
+  52 - access("Z"."ID"="PZ"."ZAMOWIENIEID")
+  53 - filter(("Z"."STATUS"=U'NOWE' OR "Z"."STATUS"=U'W_REALIZACJI' OR "Z"."STATUS"=U'ZATWIERDZONE'))
+
+Note
+-----
+   - dynamic statistics used: dynamic sampling (level=2)
+   - this is an adaptive plan
+
+######################################################################
+T4.2 - Pozycje zamówień (INSERT)
+######################################################################
+SQL_ID  b9h5a5y3my5jh, child number 0
+-------------------------------------
+INSERT INTO PozycjaZamowienia (ZamowienieID, LekID, Ilosc, CenaZakupu,
+                              DataDostarczenia, KodPozycji) WITH
+sprzedaz_12m AS (     SELECT ps.LekID,            SUM(ps.Ilosc) AS
+Sprzedano12m,            SUM(CASE WHEN s.DataSprzedazy >=
+ADD_MONTHS(SYSDATE, -3)                     THEN ps.Ilosc ELSE 0 END)
+AS Sprzedano3m     FROM   PozycjaSprzedazy ps     JOIN   Sprzedaz s ON
+s.ID = ps.SprzedazID     WHERE  s.DataSprzedazy >= ADD_MONTHS(SYSDATE,
+-12)     GROUP  BY ps.LekID     HAVING SUM(ps.Ilosc) >= 100     AND
+SUM(CASE WHEN s.DataSprzedazy >= ADD_MONTHS(SYSDATE, -3)
+     THEN ps.Ilosc ELSE 0 END) / 3 >= 0.7 * SUM(ps.Ilosc) / 12 ),
+wiarygodni_dostawcy AS (     SELECT z.DostawcaID     FROM   Zamowienie
+z     LEFT   JOIN PozycjaZamowienia pz ON pz.ZamowienieID = z.ID
+GROUP  BY z.DostawcaID     HAVING COUNT(DISTINCT CASE WHEN z.Status =
+'ANULOWANE' THEN z.ID END)            < 0.05 * COUNT(DISTINCT z.ID)
+AND    AVG(pz.DataDostarczenia - z.
+
+Plan hash value: 4244279999
+
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+| Id  | Operation                                | Name              | Starts | E-Rows | Cost (%CPU)| A-Rows |   A-Time   | Buffers | Reads  | Writes |  OMem |  1Mem | Used-Mem | Used-Tmp|
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+|   0 | INSERT STATEMENT                         |                   |      1 |        | 10484 (100)|      0 |00:00:02.07 |     110K|   2700 |   2700 |       |       |          |         |
+|   1 |  LOAD TABLE CONVENTIONAL                 | POZYCJAZAMOWIENIA |      1 |        |            |      0 |00:00:02.07 |     110K|   2700 |   2700 |       |       |          |         |
+|   2 |   SEQUENCE                               | ISEQ$$_73301      |      1 |        |            |     35 |00:00:02.06 |     110K|   2700 |   2700 |       |       |          |         |
+|   3 |    WINDOW SORT                           |                   |      1 |      1 | 10484   (1)|     35 |00:00:02.05 |     110K|   2700 |   2700 |  6144 |  6144 | 6144  (0)|         |
+|*  4 |     FILTER                               |                   |      1 |        |            |     35 |00:00:02.05 |     110K|   2700 |   2700 |       |       |          |         |
+|   5 |      MERGE JOIN CARTESIAN                |                   |      1 |      1 | 10412   (1)|     65 |00:00:01.82 |   22447 |   2700 |   2700 |       |       |          |         |
+|*  6 |       HASH JOIN ANTI                     |                   |      1 |      1 | 10104   (1)|     65 |00:00:01.81 |   21328 |   2700 |   2700 |   916K|   916K| 1406K (0)|         |
+|*  7 |        FILTER                            |                   |      1 |        |            |     65 |00:00:01.78 |   20209 |   2700 |   2700 |       |       |          |         |
+|*  8 |         HASH JOIN OUTER                  |                   |      1 |      1 |  9796   (1)|    273 |00:00:01.78 |   20209 |   2700 |   2700 |   945K|   945K| 1193K (0)|         |
+|   9 |          JOIN FILTER CREATE              | :BF0000           |      1 |      1 |  8063   (1)|    273 |00:00:01.60 |   13908 |   2700 |   2700 |       |       |          |         |
+|* 10 |           HASH JOIN OUTER                |                   |      1 |      1 |  8063   (1)|    273 |00:00:01.60 |   13908 |   2700 |   2700 |   982K|   982K| 1215K (0)|         |
+|  11 |            JOIN FILTER CREATE            | :BF0001           |      1 |      1 |  7683   (1)|    273 |00:00:01.57 |   12541 |   2700 |   2700 |       |       |          |         |
+|* 12 |             HASH JOIN                    |                   |      1 |      1 |  7683   (1)|    273 |00:00:01.57 |   12541 |   2700 |   2700 |  1150K|  1150K| 1371K (0)|         |
+|  13 |              JOIN FILTER CREATE          | :BF0002           |      1 |      1 |  1225   (1)|   3201 |00:00:00.12 |    2989 |      0 |      0 |       |       |          |         |
+|* 14 |               HASH JOIN                  |                   |      1 |      1 |  1225   (1)|   3201 |00:00:00.12 |    2989 |      0 |      0 |  1236K|  1236K| 1308K (0)|         |
+|* 15 |                TABLE ACCESS FULL         | ZAMOWIENIE        |      1 |      1 |    68   (0)|     21 |00:00:00.01 |     248 |      0 |      0 |       |       |          |         |
+|* 16 |                VIEW                      |                   |      1 |    509 |  1157   (1)|   5586 |00:00:00.12 |    2741 |      0 |      0 |       |       |          |         |
+|* 17 |                 WINDOW SORT PUSHED RANK  |                   |      1 |    509 |  1157   (1)|   5586 |00:00:00.12 |    2741 |      0 |      0 |  3951K|   851K| 3511K (0)|         |
+|* 18 |                  HASH JOIN               |                   |      1 |    509 |  1156   (1)|  62973 |00:00:00.09 |    2741 |      0 |      0 |  1513K|  1345K| 1855K (0)|         |
+|* 19 |                   HASH JOIN              |                   |      1 |     58 |   848   (1)|   7195 |00:00:00.08 |    1622 |      0 |      0 |  1544K|  1453K| 2052K (0)|         |
+|* 20 |                    HASH JOIN             |                   |      1 |     89 |   845   (1)|   7893 |00:00:00.08 |    1615 |      0 |      0 |  2546K|  2546K| 1717K (0)|         |
+|  21 |                     VIEW                 |                   |      1 |      1 |   777   (1)|     98 |00:00:00.07 |    1367 |      0 |      0 |       |       |          |         |
+|* 22 |                      FILTER              |                   |      1 |        |            |     98 |00:00:00.07 |    1367 |      0 |      0 |       |       |          |         |
+|  23 |                       SORT GROUP BY      |                   |      1 |      1 |   777   (1)|    263 |00:00:00.07 |    1367 |      0 |      0 |   875K|   875K| 1180K (0)|         |
+|* 24 |                        HASH JOIN OUTER   |                   |      1 |    220K|   773   (1)|    175K|00:00:00.01 |    1367 |      0 |      0 |  2579K|  1474K| 3253K (0)|         |
+|  25 |                         TABLE ACCESS FULL| ZAMOWIENIE        |      1 |  22843 |    68   (0)|  20021 |00:00:00.01 |     248 |      0 |      0 |       |       |          |         |
+|  26 |                         TABLE ACCESS FULL| POZYCJAZAMOWIENIA |      1 |    199K|   308   (1)|    175K|00:00:00.01 |    1119 |      0 |      0 |       |       |          |         |
+|* 27 |                     TABLE ACCESS FULL    | ZAMOWIENIE        |      1 |  22045 |    68   (0)|  19234 |00:00:00.01 |     248 |      0 |      0 |       |       |          |         |
+|* 28 |                    TABLE ACCESS FULL     | DOSTAWCA          |      1 |    161 |     3   (0)|    161 |00:00:00.01 |       7 |      0 |      0 |       |       |          |         |
+|* 29 |                   TABLE ACCESS FULL      | POZYCJAZAMOWIENIA |      1 |    192K|   308   (1)|    168K|00:00:00.01 |    1119 |      0 |      0 |       |       |          |         |
+|  30 |              VIEW                        |                   |      1 |    220K|  6457   (1)|    278 |00:00:01.45 |    9552 |   2700 |   2700 |       |       |          |         |
+|* 31 |               FILTER                     |                   |      1 |        |            |    278 |00:00:01.45 |    9552 |   2700 |   2700 |       |       |          |         |
+|  32 |                SORT GROUP BY             |                   |      1 |    220K|  6457   (1)|   3193 |00:00:01.45 |    9552 |   2700 |   2700 |   337K|   337K|  299K (0)|         |
+|  33 |                 JOIN FILTER USE          | :BF0002           |      1 |    220K|  6453   (1)|    119K|00:00:01.43 |    9552 |   2700 |   2700 |       |       |          |         |
+|* 34 |                  HASH JOIN               |                   |      1 |    220K|  6453   (1)|    183K|00:00:01.41 |    9552 |   2700 |   2700 |    66M|  7454K|   79M (1)|      23M|
+|  35 |                   VIEW                   | VW_GBC_10         |      1 |   1230K|  1730   (2)|    998K|00:00:00.93 |    6301 |      0 |      0 |       |       |          |         |
+|  36 |                    SORT GROUP BY         |                   |      1 |   1230K|  1730   (2)|    998K|00:00:00.85 |    6301 |      0 |      0 |    74M|  2971K|   65M (0)|         |
+|  37 |                     TABLE ACCESS FULL    | POZYCJASPRZEDAZY  |      1 |   1230K|  1711   (1)|   1000K|00:00:00.05 |    6301 |      0 |      0 |       |       |          |         |
+|* 38 |                   TABLE ACCESS FULL      | SPRZEDAZ          |      1 |  65204 |   890   (1)|  91811 |00:00:00.01 |    3251 |      0 |      0 |       |       |          |         |
+|  39 |            VIEW                          |                   |      1 |    192K|   380   (2)|   6757 |00:00:00.04 |    1367 |      0 |      0 |       |       |          |         |
+|  40 |             SORT GROUP BY                |                   |      1 |    192K|   380   (2)|   6757 |00:00:00.04 |    1367 |      0 |      0 |   549K|   549K|  487K (0)|         |
+|* 41 |              HASH JOIN                   |                   |      1 |    192K|   377   (1)|    168K|00:00:00.01 |    1367 |      0 |      0 |  2394K|  1666K| 3242K (0)|         |
+|* 42 |               TABLE ACCESS FULL          | ZAMOWIENIE        |      1 |  22045 |    68   (0)|  19234 |00:00:00.01 |     248 |      0 |      0 |       |       |          |         |
+|  43 |               JOIN FILTER USE            | :BF0001           |      1 |    192K|   308   (1)|    168K|00:00:00.01 |    1119 |      0 |      0 |       |       |          |         |
+|* 44 |                TABLE ACCESS FULL         | POZYCJAZAMOWIENIA |      1 |    192K|   308   (1)|    168K|00:00:00.01 |    1119 |      0 |      0 |       |       |          |         |
+|  45 |          VIEW                            |                   |      1 |   1230K|  1730   (2)|   7754 |00:00:00.18 |    6301 |      0 |      0 |       |       |          |         |
+|  46 |           SORT GROUP BY                  |                   |      1 |   1230K|  1730   (2)|   7754 |00:00:00.18 |    6301 |      0 |      0 |   619K|   619K|  550K (0)|         |
+|  47 |            JOIN FILTER USE               | :BF0000           |      1 |   1230K|  1711   (1)|   1000K|00:00:00.02 |    6301 |      0 |      0 |       |       |          |         |
+|* 48 |             TABLE ACCESS FULL            | POZYCJASPRZEDAZY  |      1 |   1230K|  1711   (1)|   1000K|00:00:00.02 |    6301 |      0 |      0 |       |       |          |         |
+|  49 |        TABLE ACCESS FULL                 | POZYCJAZAMOWIENIA |      1 |    199K|   308   (1)|    175K|00:00:00.01 |    1119 |      0 |      0 |       |       |          |         |
+|  50 |       BUFFER SORT                        |                   |     65 |      1 | 10105   (1)|     65 |00:00:00.01 |    1119 |      0 |      0 | 73728 | 73728 |          |         |
+|  51 |        VIEW                              |                   |      1 |      1 |   308   (1)|      1 |00:00:00.01 |    1119 |      0 |      0 |       |       |          |         |
+|  52 |         SORT AGGREGATE                   |                   |      1 |      1 |            |      1 |00:00:00.01 |    1119 |      0 |      0 |       |       |          |         |
+|  53 |          TABLE ACCESS FULL               | POZYCJAZAMOWIENIA |      1 |    199K|   308   (1)|    175K|00:00:00.01 |    1119 |      0 |      0 |       |       |          |         |
+|* 54 |      HASH JOIN                           |                   |     65 |      1 |    71   (0)|     30 |00:00:00.24 |   87567 |      0 |      0 |  1335K|  1335K| 1671K (0)|         |
+|* 55 |       TABLE ACCESS FULL                  | ZAMOWIENIE        |     65 |    108 |    68   (0)|  11635 |00:00:00.04 |   16120 |      0 |      0 |       |       |          |         |
+|* 56 |       TABLE ACCESS FULL                  | POZYCJAZAMOWIENIA |     65 |   1995 |     3   (0)|   8384 |00:00:00.19 |   71447 |      0 |      0 |       |       |          |         |
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+Outline Data
+-------------
+
+  /*+
+      BEGIN_OUTLINE_DATA
+      IGNORE_OPTIM_EMBEDDED_HINTS
+      OPTIMIZER_FEATURES_ENABLE('23.1.0')
+      DB_VERSION('23.1.0')
+      ALL_ROWS
+      OUTLINE_LEAF(@"SEL$3207EEE9")
+      MERGE(@"SEL$4" >"SEL$20")
+      OUTLINE_LEAF(@"SEL$F9470439")
+      OUTLINE_LEAF(@"SEL$7176E272")
+      PLACE_GROUP_BY(@"SEL$C4E9B50E" ( "PS"@"SEL$13" ) 10)
+      OUTLINE_LEAF(@"SEL$D6D85665")
+      MERGE(@"SEL$8BB7F254" >"SEL$300E1A3C")
+      OUTLINE_LEAF(@"SEL$8621587D")
+      MERGE(@"SEL$425429CA" >"SEL$16")
+      OUTLINE_LEAF(@"SEL$C3E8F37D")
+      MERGE(@"SEL$8" >"SEL$17")
+      OUTLINE_LEAF(@"SEL$18")
+      OUTLINE_LEAF(@"SEL$3")
+      OUTLINE_LEAF(@"SEL$1A648AE4")
+      UNNEST(@"SEL$22")
+      OUTLINE_LEAF(@"INS$1")
+      OUTLINE(@"SEL$20")
+      OUTLINE(@"SEL$4")
+      OUTLINE(@"SEL$CD8EB3E0")
+      OUTLINE(@"SEL$C4E9B50E")
+      MERGE(@"SEL$13" >"SEL$14")
+      OUTLINE(@"SEL$300E1A3C")
+      ANSI_REARCH(@"SEL$15")
+      OUTLINE(@"SEL$8BB7F254")
+      ANSI_REARCH(@"SEL$12")
+      OUTLINE(@"SEL$16")
+      OUTLINE(@"SEL$425429CA")
+      MERGE(@"SEL$EA19AA3F" >"SEL$11")
+      OUTLINE(@"SEL$17")
+      OUTLINE(@"SEL$8")
+      OUTLINE(@"SEL$1B835CCA")
+      MERGE(@"SEL$38424BED" >"SEL$23")
+      OUTLINE(@"SEL$22")
+      OUTLINE(@"SEL$14")
+      OUTLINE(@"SEL$13")
+      OUTLINE(@"SEL$15")
+      OUTLINE(@"SEL$12")
+      OUTLINE(@"SEL$11")
+      OUTLINE(@"SEL$EA19AA3F")
+      MERGE(@"SEL$9" >"SEL$10")
+      OUTLINE(@"SEL$23")
+      OUTLINE(@"SEL$38424BED")
+      MERGE(@"SEL$E07474B3" >"SEL$2")
+      OUTLINE(@"SEL$10")
+      OUTLINE(@"SEL$9")
+      OUTLINE(@"SEL$2")
+      OUTLINE(@"SEL$E07474B3")
+      MERGE(@"SEL$11574941" >"SEL$1")
+      MERGE(@"SEL$21" >"SEL$1")
+      OUTLINE(@"SEL$1")
+      OUTLINE(@"SEL$11574941")
+      MERGE(@"SEL$38E1C6DE" >"SEL$22BAECB0")
+      OUTLINE(@"SEL$21")
+      OUTLINE(@"SEL$22BAECB0")
+      ANSI_REARCH(@"SEL$19")
+      OUTLINE(@"SEL$38E1C6DE")
+      MERGE(@"SEL$96740B85" >"SEL$DA4F3EA6")
+      OUTLINE(@"SEL$19")
+      OUTLINE(@"SEL$DA4F3EA6")
+      ANSI_REARCH(@"SEL$463D4B3F")
+      OUTLINE(@"SEL$96740B85")
+      MERGE(@"SEL$5" >"SEL$9430E53D")
+      OUTLINE(@"SEL$463D4B3F")
+      ANSI_REARCH(@"SEL$7")
+      OUTLINE(@"SEL$9430E53D")
+      ANSI_REARCH(@"SEL$6")
+      OUTLINE(@"SEL$5")
+      OUTLINE(@"SEL$7")
+      OUTLINE(@"SEL$6")
+      LOAD_METHOD(@"INS$1" "POZYCJAZAMOWIENIA"@"INS$1" CONVENTIONAL)
+      LOAD_TYPE(@"INS$1" "POZYCJAZAMOWIENIA"@"INS$1" SERIAL)
+      FULL(@"INS$1" "POZYCJAZAMOWIENIA"@"INS$1")
+      FULL(@"SEL$1A648AE4" "Z"@"SEL$21")
+      NO_ACCESS(@"SEL$1A648AE4" "OD"@"SEL$5")
+      NO_ACCESS(@"SEL$1A648AE4" "S"@"SEL$5")
+      NO_ACCESS(@"SEL$1A648AE4" "DZ"@"SEL$6")
+      NO_ACCESS(@"SEL$1A648AE4" "SZ"@"SEL$7")
+      FULL(@"SEL$1A648AE4" "PZ"@"SEL$22")
+      NO_ACCESS(@"SEL$1A648AE4" "M"@"SEL$2")
+      LEADING(@"SEL$1A648AE4" "Z"@"SEL$21" "OD"@"SEL$5" "S"@"SEL$5" "DZ"@"SEL$6" "SZ"@"SEL$7" "PZ"@"SEL$22" "M"@"SEL$2")
+      USE_HASH(@"SEL$1A648AE4" "OD"@"SEL$5")
+      USE_HASH(@"SEL$1A648AE4" "S"@"SEL$5")
+      USE_HASH(@"SEL$1A648AE4" "DZ"@"SEL$6")
+      USE_HASH(@"SEL$1A648AE4" "SZ"@"SEL$7")
+      USE_HASH(@"SEL$1A648AE4" "PZ"@"SEL$22")
+      USE_MERGE_CARTESIAN(@"SEL$1A648AE4" "M"@"SEL$2")
+      PX_JOIN_FILTER(@"SEL$1A648AE4" "S"@"SEL$5")
+      PX_JOIN_FILTER(@"SEL$1A648AE4" "DZ"@"SEL$6")
+      PX_JOIN_FILTER(@"SEL$1A648AE4" "SZ"@"SEL$7")
+      PQ_FILTER(@"SEL$1A648AE4" SERIAL)
+      NO_ACCESS(@"SEL$7176E272" "VW_GBC_10"@"SEL$CD8EB3E0")
+      FULL(@"SEL$7176E272" "S"@"SEL$13")
+      LEADING(@"SEL$7176E272" "VW_GBC_10"@"SEL$CD8EB3E0" "S"@"SEL$13")
+      USE_HASH(@"SEL$7176E272" "S"@"SEL$13")
+      NO_ACCESS(@"SEL$8621587D" "WD"@"SEL$11")
+      FULL(@"SEL$8621587D" "Z"@"SEL$9")
+      FULL(@"SEL$8621587D" "D"@"SEL$10")
+      FULL(@"SEL$8621587D" "PZ"@"SEL$9")
+      LEADING(@"SEL$8621587D" "WD"@"SEL$11" "Z"@"SEL$9" "D"@"SEL$10" "PZ"@"SEL$9")
+      USE_HASH(@"SEL$8621587D" "Z"@"SEL$9")
+      USE_HASH(@"SEL$8621587D" "D"@"SEL$10")
+      USE_HASH(@"SEL$8621587D" "PZ"@"SEL$9")
+      FULL(@"SEL$C3E8F37D" "Z"@"SEL$8")
+      FULL(@"SEL$C3E8F37D" "PZ"@"SEL$8")
+      LEADING(@"SEL$C3E8F37D" "Z"@"SEL$8" "PZ"@"SEL$8")
+      USE_HASH(@"SEL$C3E8F37D" "PZ"@"SEL$8")
+      FULL(@"SEL$18" "PS"@"SEL$18")
+      FULL(@"SEL$3" "POZYCJAZAMOWIENIA"@"SEL$3")
+      FULL(@"SEL$D6D85665" "Z"@"SEL$12")
+      FULL(@"SEL$D6D85665" "PZ"@"SEL$12")
+      LEADING(@"SEL$D6D85665" "Z"@"SEL$12" "PZ"@"SEL$12")
+      USE_HASH(@"SEL$D6D85665" "PZ"@"SEL$12")
+      FULL(@"SEL$F9470439" "PS"@"SEL$13")
+      FULL(@"SEL$3207EEE9" "PZ"@"SEL$4")
+      FULL(@"SEL$3207EEE9" "Z"@"SEL$4")
+      LEADING(@"SEL$3207EEE9" "PZ"@"SEL$4" "Z"@"SEL$4")
+      USE_HASH(@"SEL$3207EEE9" "Z"@"SEL$4")
+      SWAP_JOIN_INPUTS(@"SEL$3207EEE9" "Z"@"SEL$4")
+      END_OUTLINE_DATA
+  */
+
+Predicate Information (identified by operation id):
+---------------------------------------------------
+
+   4 - filter( IS NULL)
+   6 - access("PZ"."ZAMOWIENIEID"="Z"."ID")
+   7 - filter(GREATEST(NVL("DZ"."DOSTARCZONO",0)-NVL("SZ"."SPRZEDANO",0),0)<2*GREATEST("S"."SPRZEDANO12M"/12,"S"."SPRZEDANO3M"/3))
+   8 - access("SZ"."LEKID"="S"."LEKID")
+  10 - access("DZ"."LEKID"="S"."LEKID")
+  12 - access("OD"."LEKID"="S"."LEKID")
+  14 - access("Z"."DOSTAWCAID"="OD"."DOSTAWCAID")
+  15 - filter(("Z"."STATUS"=U'NOWE' AND "Z"."WARTOSCZAMOWIENIA"=0 AND "Z"."DATAZAMOWIENIA"=TRUNC(SYSDATE@!)))
+  16 - filter("OD"."RN"=1)
+  17 - filter(ROW_NUMBER() OVER ( PARTITION BY "PZ"."LEKID" ORDER BY "PZ"."DATADOSTARCZENIA" DESC ,"PZ"."ID" DESC )<=1)
+  18 - access("Z"."ID"="PZ"."ZAMOWIENIEID")
+  19 - access("D"."ID"="Z"."DOSTAWCAID")
+  20 - access("WD"."DOSTAWCAID"="Z"."DOSTAWCAID")
+  22 - filter((COUNT(DISTINCT CASE "Z"."STATUS" WHEN U'ANULOWANE' THEN "Z"."ID" END )<.05*COUNT(DISTINCT "Z"."ID") AND
+              SUM("PZ"."DATADOSTARCZENIA"-"Z"."PLANOWANADOSTAWA")/COUNT("PZ"."DATADOSTARCZENIA"-"Z"."PLANOWANADOSTAWA")<=1))
+  24 - access("PZ"."ZAMOWIENIEID"="Z"."ID")
+  27 - filter("Z"."STATUS"=U'ZREALIZOWANE')
+  28 - filter("D"."DATAPODPISANIAUMOWY"<=ADD_MONTHS(SYSDATE@!,-36))
+  29 - filter("PZ"."DATADOSTARCZENIA" IS NOT NULL)
+  31 - filter((SUM("ITEM_2")>=100 AND SUM(CASE  WHEN "S"."DATASPRZEDAZY">=ADD_MONTHS(SYSDATE@!,-3) THEN "ITEM_2" ELSE "ITEM_3" END )/3>=.7*SUM("ITEM_2")/12))
+  34 - access("S"."ID"="ITEM_1")
+  38 - filter("S"."DATASPRZEDAZY">=ADD_MONTHS(SYSDATE@!,-12))
+  41 - access("Z"."ID"="PZ"."ZAMOWIENIEID")
+  42 - filter("Z"."STATUS"=U'ZREALIZOWANE')
+  44 - filter(("PZ"."DATADOSTARCZENIA" IS NOT NULL AND SYS_OP_BLOOM_FILTER(:BF0001,"PZ"."LEKID")))
+  48 - filter(SYS_OP_BLOOM_FILTER(:BF0000,"PS"."LEKID"))
+  54 - access("Z"."ID"="PZ"."ZAMOWIENIEID")
+  55 - filter(("Z"."STATUS"=U'NOWE' OR "Z"."STATUS"=U'W_REALIZACJI' OR "Z"."STATUS"=U'ZATWIERDZONE'))
+  56 - filter("PZ"."LEKID"=:B1)
+
+Note
+-----
+   - dynamic statistics used: dynamic sampling (level=2)
+   - this is an adaptive plan
+
+######################################################################
+T4.3 - Wartość nowych zamówień (UPDATE)
+######################################################################
+SQL_ID  c1jtjyr9bzgsv, child number 2
+-------------------------------------
+UPDATE Zamowienie z SET    z.WartoscZamowienia = (SELECT SUM(pz.Ilosc *
+pz.CenaZakupu)                               FROM   PozycjaZamowienia
+pz                               WHERE  pz.ZamowienieID = z.ID) WHERE
+z.Status            = 'NOWE' AND    z.DataZamowienia    =
+TRUNC(SYSDATE) AND    z.WartoscZamowienia = 0 AND    EXISTS (SELECT 1
+FROM PozycjaZamowienia pz WHERE pz.ZamowienieID = z.ID)
+
+Plan hash value: 1141979920
+
+-----------------------------------------------------------------------------------------------------------------------------------------------
+| Id  | Operation               | Name              | Starts | E-Rows | Cost (%CPU)| A-Rows |   A-Time   | Buffers |  OMem |  1Mem | Used-Mem |
+-----------------------------------------------------------------------------------------------------------------------------------------------
+|   0 | UPDATE STATEMENT        |                   |      1 |        |   688 (100)|      0 |00:00:00.07 |    2459 |       |       |          |
+|   1 |  UPDATE                 | ZAMOWIENIE        |      1 |        |            |      0 |00:00:00.07 |    2459 |       |       |          |
+|*  2 |   HASH JOIN SEMI        |                   |      1 |      1 |   688   (1)|     21 |00:00:00.07 |    2438 |  1055K|  1055K| 1305K (0)|
+|*  3 |    HASH JOIN OUTER      |                   |      1 |      1 |   380   (2)|     21 |00:00:00.04 |    1367 |  1142K|  1142K| 1147K (0)|
+|   4 |     JOIN FILTER CREATE  | :BF0000           |      1 |      1 |    68   (0)|     21 |00:00:00.01 |     248 |       |       |          |
+|*  5 |      TABLE ACCESS FULL  | ZAMOWIENIE        |      1 |      1 |    68   (0)|     21 |00:00:00.01 |     248 |       |       |          |
+|   6 |     VIEW                | VW_RT_0           |      1 |    199K|   311   (2)|  20021 |00:00:00.04 |    1119 |       |       |          |
+|   7 |      SORT GROUP BY      |                   |      1 |    199K|   311   (2)|  20021 |00:00:00.04 |    1119 |  1683K|  1430K| 1495K (0)|
+|   8 |       JOIN FILTER USE   | :BF0000           |      1 |    199K|   308   (1)|    175K|00:00:00.01 |    1119 |       |       |          |
+|*  9 |        TABLE ACCESS FULL| POZYCJAZAMOWIENIA |      1 |    199K|   308   (1)|    175K|00:00:00.01 |    1119 |       |       |          |
+|  10 |    TABLE ACCESS FULL    | POZYCJAZAMOWIENIA |      1 |    199K|   308   (1)|    172K|00:00:00.01 |    1071 |       |       |          |
+-----------------------------------------------------------------------------------------------------------------------------------------------
+
+Outline Data
+-------------
+
+  /*+
+      BEGIN_OUTLINE_DATA
+      IGNORE_OPTIM_EMBEDDED_HINTS
+      OPTIMIZER_FEATURES_ENABLE('23.1.0')
+      DB_VERSION('23.1.0')
+      ALL_ROWS
+      OUTLINE_LEAF(@"SEL$7D4DB4AA")
+      OUTLINE_LEAF(@"SEL$E0F8B465")
+      UNNEST(@"SEL$2")
+      OUTLINE(@"SEL$1")
+      OUTLINE(@"SEL$C998CFF2")
+      OUTLINE(@"SEL$2")
+      OUTLINE(@"UPD$1")
+      FULL(@"SEL$E0F8B465" "Z"@"UPD$1")
+      NO_ACCESS(@"SEL$E0F8B465" "VW_RT_0"@"UPD$1")
+      FULL(@"SEL$E0F8B465" "PZ"@"SEL$2")
+      LEADING(@"SEL$E0F8B465" "Z"@"UPD$1" "VW_RT_0"@"UPD$1" "PZ"@"SEL$2")
+      USE_HASH(@"SEL$E0F8B465" "VW_RT_0"@"UPD$1")
+      USE_HASH(@"SEL$E0F8B465" "PZ"@"SEL$2")
+      PX_JOIN_FILTER(@"SEL$E0F8B465" "VW_RT_0"@"UPD$1")
+      FULL(@"SEL$7D4DB4AA" "PZ"@"SEL$1")
+      END_OUTLINE_DATA
+  */
+
+Predicate Information (identified by operation id):
+---------------------------------------------------
+
+   2 - access("PZ"."ZAMOWIENIEID"="Z"."ID")
+   3 - access("ITEM_0"="Z"."ID")
+   5 - filter(("Z"."STATUS"=U'NOWE' AND "Z"."WARTOSCZAMOWIENIA"=0 AND "Z"."DATAZAMOWIENIA"=TRUNC(SYSDATE@!)))
+   9 - filter(SYS_OP_BLOOM_FILTER(:BF0000,"PZ"."ZAMOWIENIEID"))
+
+Note
+-----
+   - dynamic statistics used: dynamic sampling (level=2)
+
+######################################################################
+T5 - Aktualizacja cen leków (UPDATE)
+######################################################################
+SQL_ID  cmzdn3c2tvds8, child number 1
+-------------------------------------
+UPDATE Lek l -- podwyżka proporcjonalna do wzrostu kosztu, najwyżej o
+20% jednorazowo SET    l.CenaDetaliczna = ROUND(l.CenaDetaliczna *
+LEAST(w.WzrostKosztu, 1.20), 2) FROM  (     SELECT c.LekID,
+c.Koszt6m,            c.Koszt6m / c.KosztPoprz24m AS WzrostKosztu
+FROM  (         -- średnie ceny zakupu ważone ilością: ostatnie 6 mies.
+i 6-30 mies. temu,         -- tylko zrealizowane zamówienia od
+dostawców z umową >= 1 rok         SELECT pz.LekID,
+SUM(CASE WHEN z.DataZamowienia >= ADD_MONTHS(SYSDATE, -6)
+          THEN pz.Ilosc * pz.CenaZakupu END)              / SUM(CASE
+WHEN z.DataZamowienia >= ADD_MONTHS(SYSDATE, -6)
+ THEN pz.Ilosc END)                           AS Koszt6m,
+ SUM(CASE WHEN z.DataZamowienia <  ADD_MONTHS(SYSDATE, -6)
+           THEN pz.Ilosc * pz.CenaZakupu END)              / SUM(CASE
+WHEN z.DataZamowienia <  ADD_MONTHS(SYSDATE, -6)
+ THEN pz.Ilo
+
+Plan hash value: 3569009661
+
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+| Id  | Operation                     | Name              | Starts | E-Rows | Cost (%CPU)| A-Rows |   A-Time   | Buffers | Reads  | Writes |  OMem |  1Mem | Used-Mem | Used-Tmp|
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+|   0 | UPDATE STATEMENT              |                   |      1 |        |  7455 (100)|      0 |00:00:01.55 |   13987 |    270 |    270 |       |       |          |         |
+|   1 |  UPDATE                       | LEK               |      1 |        |            |      0 |00:00:01.55 |   13987 |    270 |    270 |       |       |          |         |
+|*  2 |   HASH JOIN                   |                   |      1 |  10120 |  7455   (1)|    797 |00:00:01.55 |   13172 |    270 |    270 |   986K|   986K| 1213K (0)|         |
+|   3 |    JOIN FILTER CREATE         | :BF0000           |      1 |   9166 |   998   (1)|    913 |00:00:00.04 |    3620 |      0 |      0 |       |       |          |         |
+|*  4 |     HASH JOIN ANTI            |                   |      1 |   9166 |   998   (1)|    913 |00:00:00.04 |    3620 |      0 |      0 |   982K|   982K| 1394K (0)|         |
+|*  5 |      HASH JOIN                |                   |      1 |   9166 |   621   (1)|   1305 |00:00:00.04 |    2253 |      0 |      0 |  1660K|  1660K| 1700K (0)|         |
+|   6 |       JOIN FILTER CREATE      | :BF0001           |      1 |   8157 |   238   (0)|   8000 |00:00:00.01 |     879 |      0 |      0 |       |       |          |         |
+|   7 |        TABLE ACCESS FULL      | LEK               |      1 |   8157 |   238   (0)|   8000 |00:00:00.01 |     879 |      0 |      0 |       |       |          |         |
+|   8 |       VIEW                    |                   |      1 |    183K|   383   (2)|   1307 |00:00:00.03 |    1374 |      0 |      0 |       |       |          |         |
+|*  9 |        FILTER                 |                   |      1 |        |            |   1307 |00:00:00.03 |    1374 |      0 |      0 |       |       |          |         |
+|  10 |         SORT GROUP BY         |                   |      1 |    183K|   383   (2)|   5693 |00:00:00.03 |    1374 |      0 |      0 |  1116K|   777K|  991K (0)|         |
+|  11 |          VIEW                 | VW_DAG_0          |      1 |    183K|   383   (2)|  15722 |00:00:00.03 |    1374 |      0 |      0 |       |       |          |         |
+|  12 |           HASH GROUP BY       |                   |      1 |    183K|   383   (2)|  15722 |00:00:00.03 |    1374 |      0 |      0 |  2994K|  1115K| 8249K (0)|         |
+|* 13 |            HASH JOIN          |                   |      1 |    183K|   379   (1)|  72250 |00:00:00.01 |    1374 |      0 |      0 |  1597K|  1345K| 1881K (0)|         |
+|* 14 |             HASH JOIN         |                   |      1 |   7706 |    71   (0)|   8245 |00:00:00.01 |     255 |      0 |      0 |  1744K|  1744K| 1637K (0)|         |
+|* 15 |              TABLE ACCESS FULL| DOSTAWCA          |      1 |    227 |     3   (0)|    227 |00:00:00.01 |       7 |      0 |      0 |       |       |          |         |
+|* 16 |              TABLE ACCESS FULL| ZAMOWIENIE        |      1 |   8385 |    68   (0)|   8456 |00:00:00.01 |     248 |      0 |      0 |       |       |          |         |
+|  17 |             JOIN FILTER USE   | :BF0001           |      1 |    199K|   308   (1)|    175K|00:00:00.01 |    1119 |      0 |      0 |       |       |          |         |
+|* 18 |              TABLE ACCESS FULL| POZYCJAZAMOWIENIA |      1 |    199K|   308   (1)|    175K|00:00:00.01 |    1119 |      0 |      0 |       |       |          |         |
+|  19 |      VIEW                     | VW_SQ_1           |      1 |  16228 |   376   (1)|   1016 |00:00:00.01 |    1367 |      0 |      0 |       |       |          |         |
+|* 20 |       HASH JOIN               |                   |      1 |  16228 |   376   (1)|   1016 |00:00:00.01 |    1367 |      0 |      0 |  1250K|  1250K| 1378K (0)|         |
+|* 21 |        TABLE ACCESS FULL      | ZAMOWIENIE        |      1 |    108 |    68   (0)|    119 |00:00:00.01 |     248 |      0 |      0 |       |       |          |         |
+|  22 |        TABLE ACCESS FULL      | POZYCJAZAMOWIENIA |      1 |    199K|   308   (1)|    175K|00:00:00.01 |    1119 |      0 |      0 |       |       |          |         |
+|  23 |    VIEW                       |                   |      1 |    220K|  6457   (1)|    803 |00:00:01.50 |    9552 |    270 |    270 |       |       |          |         |
+|* 24 |     FILTER                    |                   |      1 |        |            |    803 |00:00:01.50 |    9552 |    270 |    270 |       |       |          |         |
+|  25 |      SORT GROUP BY            |                   |      1 |    220K|  6457   (1)|    931 |00:00:01.50 |    9552 |    270 |    270 |   133K|   133K|  118K (0)|         |
+|  26 |       JOIN FILTER USE         | :BF0000           |      1 |    220K|  6453   (1)|  50986 |00:00:01.49 |    9552 |    270 |    270 |       |       |          |         |
+|* 27 |        HASH JOIN              |                   |      1 |    220K|  6453   (1)|    183K|00:00:01.48 |    9552 |    270 |    270 |    66M|  7454K|   91M (1)|    3072K|
+|  28 |         VIEW                  | VW_GBC_7          |      1 |   1230K|  1730   (2)|    998K|00:00:00.96 |    6301 |      0 |      0 |       |       |          |         |
+|  29 |          SORT GROUP BY        |                   |      1 |   1230K|  1730   (2)|    998K|00:00:00.88 |    6301 |      0 |      0 |    74M|  2971K|   65M (0)|         |
+|  30 |           TABLE ACCESS FULL   | POZYCJASPRZEDAZY  |      1 |   1230K|  1711   (1)|   1000K|00:00:00.03 |    6301 |      0 |      0 |       |       |          |         |
+|* 31 |         TABLE ACCESS FULL     | SPRZEDAZ          |      1 |  65204 |   890   (1)|  91811 |00:00:00.02 |    3251 |      0 |      0 |       |       |          |         |
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+Outline Data
+-------------
+
+  /*+
+      BEGIN_OUTLINE_DATA
+      IGNORE_OPTIM_EMBEDDED_HINTS
+      OPTIMIZER_FEATURES_ENABLE('23.1.0')
+      DB_VERSION('23.1.0')
+      ALL_ROWS
+      OUTLINE_LEAF(@"SEL$9C28D3E9")
+      OUTLINE_LEAF(@"SEL$CD57FCB8")
+      TRANSFORM_DISTINCT_AGG(@"SEL$6A1B73E7")
+      OUTLINE_LEAF(@"SEL$AD92A815")
+      OUTLINE_LEAF(@"SEL$83A4BC54")
+      OUTLINE_LEAF(@"SEL$433A0624")
+      PLACE_GROUP_BY(@"SEL$6DE49B00" ( "PS"@"SEL$6" ) 7)
+      OUTLINE_LEAF(@"SEL$3D0C9B30")
+      UNNEST(@"SEL$AF3DAA1E")
+      OUTLINE(@"SEL$AF3DAA1E")
+      MERGE(@"SEL$1" >"SEL$9")
+      OUTLINE(@"SEL$6A1B73E7")
+      MERGE(@"SEL$37633EB5" >"SEL$5")
+      OUTLINE(@"SEL$DA69C7CF")
+      OUTLINE(@"SEL$6DE49B00")
+      MERGE(@"SEL$6" >"SEL$7")
+      OUTLINE(@"SEL$A48069C8")
+      OUTLINE(@"SEL$9")
+      OUTLINE(@"SEL$1")
+      OUTLINE(@"SEL$5")
+      OUTLINE(@"SEL$37633EB5")
+      MERGE(@"SEL$3" >"SEL$4")
+      OUTLINE(@"SEL$7")
+      OUTLINE(@"SEL$6")
+      OUTLINE(@"SEL$921246C9")
+      MERGE(@"SEL$3ECFA362" >"UPD$1")
+      OUTLINE(@"SEL$4")
+      OUTLINE(@"SEL$3")
+      OUTLINE(@"UPD$1")
+      OUTLINE(@"SEL$3ECFA362")
+      MERGE(@"SEL$2" >"SEL$8")
+      OUTLINE(@"SEL$8")
+      OUTLINE(@"SEL$2")
+      FULL(@"SEL$3D0C9B30" "L"@"UPD$1")
+      NO_ACCESS(@"SEL$3D0C9B30" "C"@"SEL$2")
+      NO_ACCESS(@"SEL$3D0C9B30" "VW_SQ_1"@"SEL$A48069C8")
+      NO_ACCESS(@"SEL$3D0C9B30" "SP"@"SEL$2")
+      LEADING(@"SEL$3D0C9B30" "L"@"UPD$1" "C"@"SEL$2" "VW_SQ_1"@"SEL$A48069C8" "SP"@"SEL$2")
+      USE_HASH(@"SEL$3D0C9B30" "C"@"SEL$2")
+      USE_HASH(@"SEL$3D0C9B30" "VW_SQ_1"@"SEL$A48069C8")
+      USE_HASH(@"SEL$3D0C9B30" "SP"@"SEL$2")
+      PX_JOIN_FILTER(@"SEL$3D0C9B30" "C"@"SEL$2")
+      PX_JOIN_FILTER(@"SEL$3D0C9B30" "SP"@"SEL$2")
+      FULL(@"SEL$9C28D3E9" "Z2"@"SEL$1")
+      FULL(@"SEL$9C28D3E9" "PZ2"@"SEL$1")
+      LEADING(@"SEL$9C28D3E9" "Z2"@"SEL$1" "PZ2"@"SEL$1")
+      USE_HASH(@"SEL$9C28D3E9" "PZ2"@"SEL$1")
+      NO_ACCESS(@"SEL$AD92A815" "VW_DAG_0"@"SEL$AD92A815")
+      NO_ACCESS(@"SEL$433A0624" "VW_GBC_7"@"SEL$DA69C7CF")
+      FULL(@"SEL$433A0624" "S"@"SEL$6")
+      LEADING(@"SEL$433A0624" "VW_GBC_7"@"SEL$DA69C7CF" "S"@"SEL$6")
+      USE_HASH(@"SEL$433A0624" "S"@"SEL$6")
+      FULL(@"SEL$83A4BC54" "PS"@"SEL$6")
+      FULL(@"SEL$CD57FCB8" "D"@"SEL$4")
+      FULL(@"SEL$CD57FCB8" "Z"@"SEL$3")
+      FULL(@"SEL$CD57FCB8" "PZ"@"SEL$3")
+      LEADING(@"SEL$CD57FCB8" "D"@"SEL$4" "Z"@"SEL$3" "PZ"@"SEL$3")
+      USE_HASH(@"SEL$CD57FCB8" "Z"@"SEL$3")
+      USE_HASH(@"SEL$CD57FCB8" "PZ"@"SEL$3")
+      USE_HASH_AGGREGATION(@"SEL$CD57FCB8" GROUP_BY)
+      END_OUTLINE_DATA
+  */
+
+Predicate Information (identified by operation id):
+---------------------------------------------------
+
+   2 - access("SP"."LEKID"="C"."LEKID")
+   4 - access("ITEM_1"="C"."LEKID")
+   5 - access("L"."ID"="C"."LEKID")
+       filter(("L"."CENADETALICZNA"-"C"."KOSZT6M")/"L"."CENADETALICZNA"<.35)
+   9 - filter((NVL(SUM("ITEM_3"),0)>=2 AND COUNT("ITEM_1")>=2 AND SUM("ITEM_7")/SUM("ITEM_6")>=1.03*(SUM("ITEM_5")/SUM("ITEM_4"))))
+  13 - access("Z"."ID"="PZ"."ZAMOWIENIEID")
+  14 - access("D"."ID"="Z"."DOSTAWCAID")
+  15 - filter("D"."DATAPODPISANIAUMOWY"<=ADD_MONTHS(SYSDATE@!,-12))
+  16 - filter(("Z"."STATUS"=U'ZREALIZOWANE' AND "Z"."DATAZAMOWIENIA">=ADD_MONTHS(SYSDATE@!,-30)))
+  18 - filter(SYS_OP_BLOOM_FILTER(:BF0001,"PZ"."LEKID"))
+  20 - access("Z2"."ID"="PZ2"."ZAMOWIENIEID")
+  21 - filter(("Z2"."STATUS"=U'W_REALIZACJI' OR "Z2"."STATUS"=U'ZATWIERDZONE'))
+  24 - filter((SUM("ITEM_2")>5 AND SUM(CASE  WHEN "S"."DATASPRZEDAZY">=ADD_MONTHS(SYSDATE@!,-6) THEN "ITEM_2" ELSE "ITEM_3" END )>=.5*SUM(CASE  WHEN
+              "S"."DATASPRZEDAZY"<ADD_MONTHS(SYSDATE@!,-6) THEN "ITEM_2" ELSE "ITEM_3" END )))
+  27 - access("S"."ID"="ITEM_1")
+  31 - filter("S"."DATASPRZEDAZY">=ADD_MONTHS(SYSDATE@!,-12))
+
+Note
+-----
+   - dynamic statistics used: dynamic sampling (level=2)
+   - this is an adaptive plan
+
+######################################################################
+T6 - Usuwanie pozycji sprzedaży (DELETE)
+######################################################################
+SQL_ID  ant702atnk6af, child number 0
+-------------------------------------
+DELETE FROM PozycjaSprzedazy WHERE LekID IN (     SELECT l.ID     FROM
+Lek l     WHERE NOT EXISTS (         SELECT 1         FROM
+PozycjaSprzedazy ps_nowsza         JOIN Sprzedaz s ON s.ID =
+ps_nowsza.SprzedazID         WHERE ps_nowsza.LekID = l.ID           AND
+s.DataSprzedazy >= ADD_MONTHS(TRUNC(SYSDATE), -36)     )     AND NOT
+EXISTS (         SELECT 1         FROM PozycjaZamowienia pz
+JOIN Zamowienie z ON z.ID = pz.ZamowienieID         WHERE pz.LekID =
+l.ID           AND z.Status IN ('NOWE', 'ZATWIERDZONE', 'W_REALIZACJI')
+    ) )
+
+Plan hash value: 380332745
+
+------------------------------------------------------------------------------------------------------------------------------------------------
+| Id  | Operation                | Name              | Starts | E-Rows | Cost (%CPU)| A-Rows |   A-Time   | Buffers |  OMem |  1Mem | Used-Mem |
+------------------------------------------------------------------------------------------------------------------------------------------------
+|   0 | DELETE STATEMENT         |                   |      1 |        |  7298 (100)|      0 |00:00:00.52 |   81005 |       |       |          |
+|   1 |  DELETE                  | POZYCJASPRZEDAZY  |      1 |        |            |      0 |00:00:00.52 |   81005 |       |       |          |
+|*  2 |   HASH JOIN              |                   |      1 |   1230K|  7298   (1)|  15679 |00:00:00.37 |   17253 |  2546K|  2546K| 1367K (0)|
+|*  3 |    HASH JOIN ANTI        |                   |      1 |   8157 |  5584   (1)|    702 |00:00:00.19 |   10952 |  2546K|  2546K| 2213K (0)|
+|*  4 |     HASH JOIN ANTI       |                   |      1 |   8157 |   385   (1)|   7177 |00:00:00.01 |    1400 |  2546K|  2546K| 2227K (0)|
+|   5 |      INDEX FAST FULL SCAN| PK_LEK            |      1 |   8157 |     9   (0)|   8000 |00:00:00.01 |      33 |       |       |          |
+|   6 |      VIEW                | VW_SQ_2           |      1 |  16228 |   376   (1)|   1347 |00:00:00.01 |    1367 |       |       |          |
+|*  7 |       HASH JOIN          |                   |      1 |  16228 |   376   (1)|   1347 |00:00:00.01 |    1367 |  1298K|  1298K| 1384K (0)|
+|*  8 |        TABLE ACCESS FULL | ZAMOWIENIE        |      1 |    108 |    68   (0)|    158 |00:00:00.01 |     248 |       |       |          |
+|   9 |        TABLE ACCESS FULL | POZYCJAZAMOWIENIA |      1 |    199K|   308   (1)|    175K|00:00:00.01 |    1119 |       |       |          |
+|  10 |     VIEW                 | VW_SQ_1           |      1 |   1230K|  5197   (1)|    529K|00:00:00.17 |    9552 |       |       |          |
+|* 11 |      HASH JOIN SEMI      |                   |      1 |   1230K|  5197   (1)|    529K|00:00:00.17 |    9552 |    55M|    10M|   82M (0)|
+|  12 |       TABLE ACCESS FULL  | POZYCJASPRZEDAZY  |      1 |   1230K|  1711   (1)|   1000K|00:00:00.04 |    6301 |       |       |          |
+|* 13 |       TABLE ACCESS FULL  | SPRZEDAZ          |      1 |    235K|   892   (1)|    265K|00:00:00.02 |    3251 |       |       |          |
+|  14 |    TABLE ACCESS FULL     | POZYCJASPRZEDAZY  |      1 |   1230K|  1712   (1)|   1000K|00:00:00.06 |    6301 |       |       |          |
+------------------------------------------------------------------------------------------------------------------------------------------------
+
+Outline Data
+-------------
+
+  /*+
+      BEGIN_OUTLINE_DATA
+      IGNORE_OPTIM_EMBEDDED_HINTS
+      OPTIMIZER_FEATURES_ENABLE('23.1.0')
+      DB_VERSION('23.1.0')
+      ALL_ROWS
+      OUTLINE_LEAF(@"SEL$F395589B")
+      OUTLINE_LEAF(@"SEL$70865B86")
+      OUTLINE_LEAF(@"SEL$64660CFB")
+      UNNEST(@"SEL$FED9D0A4")
+      OUTLINE(@"SEL$20B10B79")
+      MERGE(@"SEL$2" >"SEL$5")
+      OUTLINE(@"SEL$16C51A37")
+      MERGE(@"SEL$1" >"SEL$4")
+      OUTLINE(@"DEL$1")
+      OUTLINE(@"SEL$FED9D0A4")
+      UNNEST(@"SEL$20B10B79")
+      UNNEST(@"SEL$16C51A37")
+      OUTLINE(@"SEL$5")
+      OUTLINE(@"SEL$2")
+      OUTLINE(@"SEL$4")
+      OUTLINE(@"SEL$1")
+      OUTLINE(@"SEL$3F76A83F")
+      OUTLINE(@"SEL$FD11C39F")
+      OUTLINE(@"SEL$3")
+      INDEX_FFS(@"SEL$64660CFB" "L"@"SEL$3" ("LEK"."ID"))
+      NO_ACCESS(@"SEL$64660CFB" "VW_SQ_2"@"SEL$3F76A83F")
+      NO_ACCESS(@"SEL$64660CFB" "VW_SQ_1"@"SEL$FD11C39F")
+      FULL(@"SEL$64660CFB" "POZYCJASPRZEDAZY"@"DEL$1")
+      LEADING(@"SEL$64660CFB" "L"@"SEL$3" "VW_SQ_2"@"SEL$3F76A83F" "VW_SQ_1"@"SEL$FD11C39F" "POZYCJASPRZEDAZY"@"DEL$1")
+      USE_HASH(@"SEL$64660CFB" "VW_SQ_2"@"SEL$3F76A83F")
+      USE_HASH(@"SEL$64660CFB" "VW_SQ_1"@"SEL$FD11C39F")
+      USE_HASH(@"SEL$64660CFB" "POZYCJASPRZEDAZY"@"DEL$1")
+      FULL(@"SEL$F395589B" "Z"@"SEL$2")
+      FULL(@"SEL$F395589B" "PZ"@"SEL$2")
+      LEADING(@"SEL$F395589B" "Z"@"SEL$2" "PZ"@"SEL$2")
+      USE_HASH(@"SEL$F395589B" "PZ"@"SEL$2")
+      FULL(@"SEL$70865B86" "PS_NOWSZA"@"SEL$1")
+      FULL(@"SEL$70865B86" "S"@"SEL$1")
+      LEADING(@"SEL$70865B86" "PS_NOWSZA"@"SEL$1" "S"@"SEL$1")
+      USE_HASH(@"SEL$70865B86" "S"@"SEL$1")
+      PARTIAL_JOIN(@"SEL$70865B86" "S"@"SEL$1")
+      END_OUTLINE_DATA
+  */
+
+Predicate Information (identified by operation id):
+---------------------------------------------------
+
+   2 - access("LEKID"="L"."ID")
+   3 - access("ITEM_1"="L"."ID")
+   4 - access("ITEM_2"="L"."ID")
+   7 - access("Z"."ID"="PZ"."ZAMOWIENIEID")
+   8 - filter(("Z"."STATUS"=U'NOWE' OR "Z"."STATUS"=U'W_REALIZACJI' OR "Z"."STATUS"=U'ZATWIERDZONE'))
+  11 - access("S"."ID"="PS_NOWSZA"."SPRZEDAZID")
+  13 - filter("S"."DATASPRZEDAZY">=ADD_MONTHS(TRUNC(SYSDATE@!),-36))
+
+Note
+-----
+   - dynamic statistics used: dynamic sampling (level=2)
+
