@@ -160,7 +160,7 @@ nowe_zamowienia AS (
 )
 SELECT nz.ID,
        k.LekID,
-       CEIL(k.Zapotrzebowanie - k.Zapas),            -- brakująca ilość do zapasu na 2 mies.
+       CEIL(k.Zapotrzebowanie - k.Zapas),
        GREATEST(ROUND(k.CenaZakupu * (1 + DBMS_RANDOM.VALUE(-0.05, 0.05)), 2), 0.01),
        NULL,
        'ZP' || LPAD(m.MaxNr + ROW_NUMBER() OVER (ORDER BY nz.ID, k.LekID), 6, '0')

@@ -2,8 +2,7 @@
 -- Zbieranie planów wykonania dla transakcji T1-T6
 --
 -- Uruchomienie (w kontenerze, jako SYSTEM, bo potrzebny jest dostęp do V$SQL):
---   docker exec apteka-db bash -c \
---     'sqlplus -s "system/$ORACLE_PASSWORD@localhost/FREEPDB1" @/scripts/plany/zbierz_plany.sql'
+--   docker exec apteka-db bash -c \ 'sqlplus -s "system/$ORACLE_PASSWORD@localhost/FREEPDB1" @/scripts/plany/zbierz_plany.sql'
 --
 -- Jak to działa:
 --   1. CURRENT_SCHEMA = APTEKA, więc zapytania działają na tabelach aplikacji.
