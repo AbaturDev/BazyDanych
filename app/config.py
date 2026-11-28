@@ -9,6 +9,7 @@ class Config:
         self.app_password = values["APP_USER_PASSWORD"]
         self.admin_password = values["ORACLE_PASSWORD"]
         self.dsn = "127.0.0.1:1521/FREEPDB1"
+        self.container_name = "apteka-db"
         self.workload_folder = os.path.join("db", "scripts", "workload")
         self.results_file = os.path.join("app", "wyniki", "pomiary.csv")
 
