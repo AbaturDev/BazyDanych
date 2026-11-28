@@ -1,32 +1,39 @@
+from datetime import datetime
+
 import oracledb
 
 from app.transaction_runner import TransactionRunner
 
 
 class Benchmark:
-    def __init__(self, config, loader, preparation):
+    def __init__(self, config, loader, preparation, results_writer):
         self.config = config
         self.loader = loader
         self.preparation = preparation
+        self.results_writer = results_writer
 
     def run(self, transactions, repetitions):
         statements_by_transaction = {}
         for transaction in transactions:
             statements_by_transaction[transaction] = self.loader.load(transaction)
 
+        series = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        print(f"\nSeries {series}")
+
         run_totals = []
         for run_number in range(1, repetitions + 1):
             print(f"\n=== Run {run_number}/{repetitions} ===")
             self.preparation.prepare()
-            total_ms = self.run_once(transactions, statements_by_transaction)
+            total_ms = self.run_once(transactions, statements_by_transaction, series, run_number)
             run_totals.append(total_ms)
             print(f"Run {run_number} total: {total_ms:.1f} ms")
 
         print("\nSummary:")
         for index in range(len(run_totals)):
             print(f"  run {index + 1}: {run_totals[index]:10.1f} ms")
+        print(f"Results saved to {self.results_writer.path}")
 
-    def run_once(self, transactions, statements_by_transaction):
+    def run_once(self, transactions, statements_by_transaction, series, run_number):
         # New connection for every run, so nothing is carried over from the previous one
         connection = oracledb.connect(user=self.config.app_user,
                                       password=self.config.app_password,
@@ -36,7 +43,13 @@ class Benchmark:
             total_ms = 0
             for transaction in transactions:
                 print(transaction)
-                transaction_ms = runner.run(statements_by_transaction[transaction])
+                results = runner.run(statements_by_transaction[transaction])
+
+                self.results_writer.write(series, run_number, results)
+
+                transaction_ms = 0
+                for result in results:
+                    transaction_ms = transaction_ms + result.elapsed_ms
                 total_ms = total_ms + transaction_ms
                 print(f"  {transaction} total: {transaction_ms:.1f} ms")
             return total_ms

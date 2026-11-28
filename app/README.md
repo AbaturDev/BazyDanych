@@ -37,9 +37,9 @@ Kolejność ma znaczenie tylko w obrębie jednej osoby. A i B mogą pracować r�
 - [x] **Krok 2. Menu w konsoli.**
   Wybór: jedna transakcja albo wszystkie; liczba powtórzeń. Przed każdym przebiegiem wywołanie `prepare()` (na razie puste) i nowe połączenie. Czas ROLLBACK jest wypisywany, ale nie wlicza się do czasu transakcji.
   Pliki: `main.py`, `menu.py`, `benchmark.py`, `database_preparation.py` (pusty szkielet dla B).
-- [ ] **Krok 3. Zapis wyników do CSV.**
-  Każdy pomiar to jeden wiersz w `app/wyniki/pomiary.csv` (format niżej).
-  Plik: `results_writer.py`.
+- [x] **Krok 3. Zapis wyników do CSV.**
+  Każda instrukcja w każdym przebiegu to jeden wiersz w `app/wyniki/pomiary.csv` (format niżej). Plik jest tylko dopisywany, więc zostaje historia wszystkich serii. Zapis następuje od razu po każdej transakcji.
+  Pliki: `results_writer.py` (nowy), `transaction_runner.py` (zwraca listę wyników zamiast samej sumy), `benchmark.py`, `config.py`.
 - [ ] **Krok 7. Statystyki i tabela do raportu.**
   Dla każdej transakcji i całego obciążenia: liczba uruchomień, min, max, średnia. Wynik w `app/wyniki/raport.md`.
   Plik: `statistics_report.py`.
@@ -55,6 +55,7 @@ Kolejność ma znaczenie tylko w obrębie jednej osoby. A i B mogą pracować r�
   Pliki: `database_preparation.py`, `state_checker.py`.
 - [ ] **Krok 6. Powtarzalność planów.**
   Usunięcie dyrektyw planu (`DBMS_SPD`) i blokada statystyk schematu (`DBMS_STATS.LOCK_SCHEMA_STATS`). Dzięki temu nocne zadanie Oracle nie zmieni planów między naszym pomiarem a zajęciami.
+  Kontrola, czy `SYSDATE` = 2026-11-21 (stała data jest już ustawiona, patrz niżej). Jeśli nie, przerwać pomiar.
   Plik: `database_preparation.py`.
 - [ ] **Krok 8. Plany wykonania.**
   Identyfikator planu (`plan_hash_value` z `V$SQL`) zapisywany przy każdym pomiarze. Uruchamianie `db/scripts/plany/zbierz_plany.sql` z menu.
@@ -91,16 +92,28 @@ Bufory opróżniamy raz przed całą próbką, a nie przed każdą transakcją.
 
 ### Format `app/wyniki/pomiary.csv`
 
-Separator `;`, jeden wiersz na transakcję w jednym przebiegu:
+Separator `;`. Jeden wiersz to jedna instrukcja w jednym przebiegu (T4 ma 3 wiersze: T4.1, T4.2, T4.3). ROLLBACK nie jest zapisywany.
 
-| Kolumna | Przykład | Kto wypełnia |
-|---|---|---|
-| `seria` | `2026-11-27_18-30` | A |
-| `przebieg` | `3` | A |
-| `transakcja` | `T4` | A |
-| `czas_ms` | `1650.4` | A |
-| `wiersze` | `71` | A |
-| `plan_hash` | `3895532130` | B (krok 8, do tego czasu puste) |
+| Kolumna | Przykład | Znaczenie | Kto wypełnia |
+|---|---|---|---|
+| `seria` | `2026-11-28_17-26-04` | jeden wybór w menu, identyfikator to czas startu | A |
+| `przebieg` | `2` | numer powtórzenia w serii | A |
+| `transakcja` | `T4` | | A |
+| `instrukcja` | `T4.2` | | A |
+| `czas_ms` | `1617.0` | wykonanie + pobranie wszystkich wierszy | A |
+| `wiersze` | `26` | zwrócone (SELECT) lub zmienione (INSERT/UPDATE/DELETE) | A |
+| `plan_hash` | `3895532130` | identyfikator planu z `V$SQL` | B (krok 8, do tego czasu puste) |
+
+Przykład:
+
+```
+seria;przebieg;transakcja;instrukcja;czas_ms;wiersze;plan_hash
+2026-11-28_17-26-04;1;T4;T4.1;1695.1;14;
+2026-11-28_17-26-04;1;T4;T4.2;1567.9;26;
+2026-11-28_17-26-04;1;T4;T4.3;35.7;14;
+```
+
+Czas transakcji w przebiegu = suma `czas_ms` jej instrukcji. Czas całego obciążenia = suma T1–T6 w przebiegu.
 
 ## Struktura plików
 
@@ -113,7 +126,7 @@ app/
   config.py                  A  odczyt .env (hasła, adres bazy)
   transaction_loader.py      A  wczytanie instrukcji z workload/tN.sql
   transaction_runner.py      A  wykonanie i pomiar czasu
-  results_writer.py          A  zapis do CSV
+  results_writer.py          A  dopisywanie pomiarów do CSV
   statistics_report.py       A  min/max/średnia, raport.md
   database_preparation.py    B  prepare(): reset, kontrola stanu, flush
   state_checker.py           B  stan bazy vs wzorzec
@@ -147,4 +160,7 @@ docker compose up -d                       # baza musi działać
 - **Bez kroków B kolejne przebiegi się różnią.** Przykład z testu T5: przebieg 1 trwał 1317 ms, przebieg 2 985 ms, bo dane były już w pamięci. To pokazuje, po co jest `prepare()`.
 - **Do flush i `V$SQL` potrzebny jest SYSTEM** (`ORACLE_PASSWORD` z `.env`). Transakcje wykonuje użytkownik APTEKA.
 - **Tabele nie mają statystyk optymalizatora**, a nocne zadanie Oracle może je zebrać i zmienić plany. Dlatego jest krok 6.
-- **Zapytania używają `SYSDATE`.** Wyniki na zajęciach mogą się trochę różnić od dzisiejszych, bo okno dat się przesuwa.
+- **Baza ma stałą datę: `SYSDATE` = 2026-11-21 00:00:00** (parametr `FIXED_DATE`, skrypt `db/init/03_fixed_date.sql`). T1 i T3–T6 liczą okna dat od `SYSDATE`. Bez stałej daty każdego dnia zmieniały się wyniki i czasy, np. T5 zmieniał 750 wierszy 27.11 i 749 wierszy 28.11. Ze stałą datą T5 zawsze zmienia 797 wierszy. 21.11 to dzień zebrania planów z fazy 5.
+  - Nowa baza (`docker compose down -v` i `up -d`): skrypt wykona się sam.
+  - Istniejąca baza: raz uruchomić `docker exec -i apteka-db sqlplus -L -s / as sysdba < db/init/03_fixed_date.sql`. Ustawienie przetrwa restart kontenera.
+  - Sprawdzenie: `SELECT SYSDATE FROM dual` musi zwrócić 21.11.2026.

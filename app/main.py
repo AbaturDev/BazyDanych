@@ -2,6 +2,7 @@ from app.benchmark import Benchmark
 from app.config import Config
 from app.database_preparation import DatabasePreparation
 from app.menu import Menu
+from app.results_writer import ResultsWriter
 from app.transaction_loader import TRANSACTIONS, TransactionLoader
 
 
@@ -9,7 +10,8 @@ def main():
     config = Config()
     loader = TransactionLoader(config.workload_folder)
     preparation = DatabasePreparation(config)
-    benchmark = Benchmark(config, loader, preparation)
+    results_writer = ResultsWriter(config.results_file)
+    benchmark = Benchmark(config, loader, preparation, results_writer)
     menu = Menu()
 
     while True:

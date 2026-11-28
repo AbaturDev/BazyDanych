@@ -1,13 +1,20 @@
 import time
 
 
+class StatementResult:
+    def __init__(self, statement, elapsed_ms, rows):
+        self.statement = statement
+        self.elapsed_ms = elapsed_ms
+        self.rows = rows
+
+
 class TransactionRunner:
     def __init__(self, connection):
         self.connection = connection
 
     def run(self, statements):
         cursor = self.connection.cursor()
-        total_ms = 0
+        results = []
 
         for statement in statements:
             start = time.perf_counter()
@@ -24,8 +31,8 @@ class TransactionRunner:
                 print(f"  {statement.name:<12} {elapsed_ms:10.1f} ms   (not counted)")
                 continue
 
-            total_ms = total_ms + elapsed_ms
+            results.append(StatementResult(statement, elapsed_ms, rows))
             print(f"  {statement.name:<12} {elapsed_ms:10.1f} ms   rows: {rows}")
 
         cursor.close()
-        return total_ms
+        return results
