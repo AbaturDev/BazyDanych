@@ -1,34 +1,36 @@
-import oracledb
-
+from app.benchmark import Benchmark
 from app.config import Config
-from app.transaction_loader import TransactionLoader
-from app.transaction_runner import TransactionRunner
-
-TRANSACTIONS = ["T1", "T2", "T3", "T4", "T5", "T6"]
+from app.database_preparation import DatabasePreparation
+from app.menu import Menu
+from app.transaction_loader import TRANSACTIONS, TransactionLoader
 
 
 def main():
     config = Config()
     loader = TransactionLoader(config.workload_folder)
+    preparation = DatabasePreparation(config)
+    benchmark = Benchmark(config, loader, preparation)
+    menu = Menu()
 
-    connection = oracledb.connect(user=config.app_user,
-                                  password=config.app_password,
-                                  dsn=config.dsn)
-    try:
-        runner = TransactionRunner(connection)
-        workload_ms = 0
+    while True:
+        menu.show()
+        option = menu.ask_option()
 
-        for transaction in TRANSACTIONS:
-            print(transaction)
-            statements = loader.load(transaction)
-            transaction_ms = runner.run(statements)
-            workload_ms = workload_ms + transaction_ms
-            print(f"  {transaction} total: {transaction_ms:.1f} ms\n")
+        if option == "0":
+            break
 
-        print(f"Whole workload: {workload_ms:.1f} ms")
-    finally:
-        connection.rollback()
-        connection.close()
+        if option == "1":
+            transaction = menu.ask_transaction()
+            repetitions = menu.ask_repetitions()
+            benchmark.run([transaction], repetitions)
+
+        if option == "2":
+            repetitions = menu.ask_repetitions()
+            benchmark.run(list(TRANSACTIONS), repetitions)
 
 
-main()
+try:
+    main()
+except KeyboardInterrupt:
+    # Ctrl+C: uncommitted changes are rolled back when the connection closes
+    print("\nInterrupted.")

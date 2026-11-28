@@ -1,5 +1,3 @@
-# Reads connection settings from the .env file in the project root.
-
 import os
 
 

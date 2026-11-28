@@ -2,6 +2,16 @@ import os
 
 SQLPLUS_COMMANDS = ["SET TIMING", "SET LINESIZE", "SET PAGESIZE"]
 
+# All transactions of the workload in execution order (file tN.sql for each).
+TRANSACTIONS = {
+    "T1": "Headache drugs sales analysis (SELECT)",
+    "T2": "Manufacturers analysis (SELECT)",
+    "T3": "Best-selling drugs (SELECT)",
+    "T4": "Automatic orders (INSERT, INSERT, UPDATE)",
+    "T5": "Drug price update (UPDATE)",
+    "T6": "Old sales items removal (DELETE)",
+}
+
 class Statement:
     def __init__(self, transaction, name, sql):
         self.transaction = transaction
@@ -11,6 +21,9 @@ class Statement:
     def returns_rows(self):
         first_word = self.sql.split()[0].upper()
         return first_word == "SELECT" or first_word == "WITH"
+
+    def is_rollback(self):
+        return self.sql.upper() == "ROLLBACK"
 
 
 class TransactionLoader:

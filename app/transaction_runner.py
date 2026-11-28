@@ -19,8 +19,12 @@ class TransactionRunner:
                 rows = cursor.rowcount
 
             elapsed_ms = (time.perf_counter() - start) * 1000
-            total_ms = total_ms + elapsed_ms
 
+            if statement.is_rollback():
+                print(f"  {statement.name:<12} {elapsed_ms:10.1f} ms   (not counted)")
+                continue
+
+            total_ms = total_ms + elapsed_ms
             print(f"  {statement.name:<12} {elapsed_ms:10.1f} ms   rows: {rows}")
 
         cursor.close()

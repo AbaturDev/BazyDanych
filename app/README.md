@@ -34,9 +34,9 @@ Kolejność ma znaczenie tylko w obrębie jednej osoby. A i B mogą pracować r�
 - [x] **Krok 1. Wykonanie transakcji z pomiarem czasu.**
   Połączenie z bazą (dane z `.env`), wczytanie `t1.sql`…`t6.sql`, wykonanie każdej instrukcji, wypisanie czasu w ms.
   Pliki: `config.py`, `transaction_loader.py`, `transaction_runner.py`, `main.py`.
-- [ ] **Krok 2. Menu w konsoli.**
-  Wybór: jedna transakcja albo wszystkie; liczba powtórzeń.
-  Plik: `main.py`.
+- [x] **Krok 2. Menu w konsoli.**
+  Wybór: jedna transakcja albo wszystkie; liczba powtórzeń. Przed każdym przebiegiem wywołanie `prepare()` (na razie puste) i nowe połączenie. Czas ROLLBACK jest wypisywany, ale nie wlicza się do czasu transakcji.
+  Pliki: `main.py`, `menu.py`, `benchmark.py`, `database_preparation.py` (pusty szkielet dla B).
 - [ ] **Krok 3. Zapis wyników do CSV.**
   Każdy pomiar to jeden wiersz w `app/wyniki/pomiary.csv` (format niżej).
   Plik: `results_writer.py`.
@@ -107,7 +107,9 @@ Separator `;`, jeden wiersz na transakcję w jednym przebiegu:
 ```
 app/
   README.md                  ten plik
-  main.py                    A  start aplikacji i menu
+  main.py                    A  start aplikacji, pętla menu
+  menu.py                    A  wyświetlanie menu i pytania o wybór
+  benchmark.py               A  przebiegi: prepare() -> nowe połączenie -> transakcje
   config.py                  A  odczyt .env (hasła, adres bazy)
   transaction_loader.py      A  wczytanie instrukcji z workload/tN.sql
   transaction_runner.py      A  wykonanie i pomiar czasu
@@ -141,6 +143,8 @@ docker compose up -d                       # baza musi działać
 - **Przy wczytywaniu `tN.sql` nie wolno wycinać linii zaczynających się od `SET`.** `SET TIMING ON` to polecenie SQL*Plus i trzeba je pominąć, ale w `t5.sql` linia `SET l.CenaDetaliczna = ...` jest częścią UPDATE. Pomijamy tylko polecenia SQL*Plus: `SET TIMING`, `SET LINESIZE`, `SET PAGESIZE`.
 - **Instrukcje w plikach kończą się `;`, ale do Oracle wysyłamy je bez średnika.**
 - **T4–T6 kończą się `ROLLBACK`.** Dane się nie zmieniają, ale sekwencje ID tak, dlatego potrzebny jest reset (krok 5).
+- **Czas transakcji nie obejmuje końcowego `ROLLBACK`** (2–15 ms). Prawdziwa aplikacja kończyłaby transakcję przez COMMIT, a ROLLBACK służy tylko do przywrócenia danych po teście. Aplikacja wypisuje go z dopiskiem `(not counted)`.
+- **Bez kroków B kolejne przebiegi się różnią.** Przykład z testu T5: przebieg 1 trwał 1317 ms, przebieg 2 985 ms, bo dane były już w pamięci. To pokazuje, po co jest `prepare()`.
 - **Do flush i `V$SQL` potrzebny jest SYSTEM** (`ORACLE_PASSWORD` z `.env`). Transakcje wykonuje użytkownik APTEKA.
 - **Tabele nie mają statystyk optymalizatora**, a nocne zadanie Oracle może je zebrać i zmienić plany. Dlatego jest krok 6.
 - **Zapytania używają `SYSDATE`.** Wyniki na zajęciach mogą się trochę różnić od dzisiejszych, bo okno dat się przesuwa.
